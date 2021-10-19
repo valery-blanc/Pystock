@@ -1,0 +1,6 @@
+pyetrade
+requests
+pandas
+numpy
+matplotlib
+scipy
