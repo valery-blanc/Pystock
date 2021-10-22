@@ -5,15 +5,12 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 from matplotlib.widgets import Slider, Button, CheckButtons, RadioButtons
 import pandas as pd
-import os
-from datetime import datetime
-from zipfile import ZipFile
-from pathlib import Path
-import time as ostime
-import requests
+import stockapi
 
 
-symbol = 'MSFT'
+
+symbol = 'TSLA'
+DELTA = 0.1
 order = 3
 nbjours = 10
 max_nb_order_per_day = 40
@@ -21,50 +18,15 @@ critical_freq = 15
 sampling_freq = 1750
 axcolor = 'lightgoldenrodyellow'
 band_width = 0.
-CSV_URL = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY_EXTENDED&interval=1min&slice=year1month1&apikey=D6T5YBJID9YYNA1D&symbol='
+
 open_bell = "093000"
 close_bell = "160000"
-
-def get_from_vantage(symbol):
-    with requests.Session() as s:
-        symbol_url = f'{CSV_URL}{symbol}'
-        filename = os.path.join('c:\\', 'WORK', 'Opy', 'us', f'{symbol.lower()}.txt')
-        my_file = Path(filename)
-        if not my_file.is_file():
-            detailled_history = pd.read_csv(symbol_url)
-            detailled_history["datetime"] = pd.to_datetime(detailled_history["time"])
-            detailled_history["datetime"] = detailled_history["datetime"].dt.strftime('%Y%m%d%H%M%S')  # '%Y%m%d%H%M%s'
-            detailled_history['date'] = detailled_history['datetime'].str[:8]
-            detailled_history[::-1].to_csv(filename, index_label=False )
-        else:
-            detailled_history = pd.read_csv(filename)
-    return (detailled_history)
-
-
-
-
-def get_from_stooq (symbol):
-    filename = os.path.join('c:\\', 'WORK', 'Opy', 'us', f'{symbol.lower()}.us.txt')
-    my_file = Path(filename)
-    if not my_file.is_file():
-        zipfilename = os.path.join('c:\\', 'WORK', 'Opy', 'us', '5_us_txt.zip')
-
-        with ZipFile(zipfilename, 'r') as zipObj:
-            listOfFileNames = zipObj.namelist()
-            for f in listOfFileNames:
-                if f.endswith(f'/{symbol.lower()}.us.txt'):
-                    print (f'f {f}')
-                    zipInfo = zipObj.getinfo(f)
-                    print (f'zipInfo {zipInfo}')
-                    zipInfo.filename = os.path.basename(f'{symbol.lower()}.us.txt')
-                    zipObj.extract(zipInfo, os.path.join('c:\\', 'WORK', 'Opy', 'us'))
-                    #zipObj.extract(f, os.path.join('c:\\', 'WORK', 'Opy', 'us'))
-    detailled_history = pd.read_csv(filename)
-    detailled_history.rename(columns={'<CLOSE>': 'close', '<DATE>': 'date', '<TIME>': 'time'}, inplace=True)
-
-    detailled_history["datetime"] = detailled_history["date"].astype(str) + detailled_history["time"].astype(str)
-
-    return (detailled_history)
+green_sign_array = np.empty (3000)
+green_sign_array[::2] = 1
+green_sign_array[1::2] = -1
+red_sign_array = np.empty (3000)
+red_sign_array[::2] = -1
+red_sign_array[1::2] = 1
 
 
 
@@ -99,8 +61,8 @@ def calc ( full_sig, band_width, order, fc, fs, disp = False, start_index = 0):
         #lowerband = full_hyst * lower_band_width
         #up_indexes = np.where(sig2 > upperband)[0]
         #down_indexes = np.where(sig2 < lowerband)[0]
-        up_indexes = np.where(np.diff(full_hyst) > 0)[0]
-        down_indexes = np.where(np.diff(full_hyst) < 0)[0]
+        up_indexes = np.where(np.diff(full_hyst) > DELTA)[0]
+        down_indexes = np.where(np.diff(full_hyst) < -1.0 * DELTA)[0]
 
         #sos = signal.butter(order, fc, 'lowpass', fs=fs, output='sos')
         #full_hyst = signal.sosfilt(sos, sig2)
@@ -142,13 +104,7 @@ def calc ( full_sig, band_width, order, fc, fs, disp = False, start_index = 0):
     return (color_array, buy_sell_array, full_hyst)
 
 
-green_sign_array = np.empty (3000)
-green_sign_array[::2] = 1
-green_sign_array[1::2] = -1
 
-red_sign_array = np.empty (3000)
-red_sign_array[::2] = -1
-red_sign_array[1::2] = 1
 
 
 def gain(full_sig, full_color_array, full_buy_sell_array, start_index, end_index, disp = False):
@@ -306,7 +262,7 @@ def replot(ax, full_sig, full_datetime, datestart, dateend, order, fc, fs, band_
 
     xmin = start_index -10
     ymin = min(np.min(sig),np.min(hyst)) -1
-    xmax= end_index +10
+    xmax= start_index + 400 #end_index +10
     ymax = max(np.max(sig), np.max(hyst)) +1
 
 
@@ -355,6 +311,7 @@ def update_best_today(val):
 def update_last_days(val):
     calc_date = int(check.value_selected)
     print(f'___________ update_last_days {calc_date}____________________')
+    print(unique_dates)
     dateend_index = np.where(unique_dates == calc_date)[0][0]
     print(f'{unique_dates}')
     datestart_index = dateend_index - nbjours
@@ -389,18 +346,12 @@ def update (val):
 
 
 
-#detailled_history = get_from_stooq(symbol)
-detailled_history = get_from_vantage(symbol)
-
-
-#print (f'detailled_history {detailled_history}')
-
+detailled_history = stockapi.get_from_vantage(symbol)
 full_datetime = np.array(detailled_history["datetime"]).astype(np.longlong)
 print (full_datetime)
 dates = np.array(detailled_history["date"])
 full_sig = np.array(detailled_history["close"])
 
-#time = np.array([np.datetime64(datetime.strptime(d, "%Y%m%d%H%M%S")) for d in detailled_history["<DATETIME>"] ])
 datestart = 20210915
 dateend = 20210917
 
@@ -470,20 +421,11 @@ update_now = Button(update_axe, 'update')
 
 
 
-
-
-#sampling_slider.on_changed(update)
-#critical_slider.on_changed(update)
-#order_slider.on_changed(update)
 band_width_slider.on_changed(update)
 check.on_clicked(update)
 best_last_day.on_clicked(update_last_days)
 best_today.on_clicked(update_best_today)
 update_now.on_clicked(update)
-#update_last_days(0)
 update(0)
-#plt.tight_layout()
-#plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y'))
-#plt.gca().xaxis.set_major_locator(mdates.DayLocator())
-#fig.autofmt_xdate()
+
 plt.show()
