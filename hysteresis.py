@@ -3,9 +3,16 @@ import numpy as np
 import pandas as pd
 from matplotlib.widgets import Slider, Button, RadioButtons
 from scipy import signal
-
+from datetime import datetime
+import pytz
 import stockapi
 
+
+global full_datetime
+global full_sig
+global dates
+
+newyork_tz = pytz.timezone('America/New_York')
 symbol = 'ABG'
 DELTA = 0.001
 order = 3
@@ -17,7 +24,7 @@ axcolor = 'lightgoldenrodyellow'
 intraday_index = 50
 
 open_bell = "093000"
-close_bell = "160000"
+close_bell = "170000"
 green_sign_array = np.empty(3000)
 green_sign_array[::2] = 1
 green_sign_array[1::2] = -1
@@ -25,8 +32,11 @@ red_sign_array = np.empty(3000)
 red_sign_array[::2] = -1
 red_sign_array[1::2] = 1
 
+def beautify_date (date_int):
+    d = str(date_int)
+    return f'{d[4:6]}.{d[6:8]} {d[8:10]}h{d[10:12]}:{d[12:14]}'
 
-def calc(full_sig, intraday_index, order, fc, fs, disp=False, start_index=0):
+def calc(full_sig, full_datetime, intraday_index, order, fc, fs, disp=False, start_index=0):
     first_day_colored_index = None
     color_array = np.zeros(len(full_sig))
     buy_sell_array = np.zeros(len(full_sig))
@@ -37,7 +47,7 @@ def calc(full_sig, intraday_index, order, fc, fs, disp=False, start_index=0):
         sig2 [start_index+intraday_index:] = full_sig[start_index+intraday_index]
 
     if disp:
-        print(f'----------- calc order {order} fc {fc} fs {fs} start_index {start_index} intraday_index {intraday_index} end {start_index+intraday_index}')
+        print(f'----------- calc order {order} fc {fc} fs {fs} start_index {start_index} {beautify_date(full_datetime[start_index])} intraday_index {intraday_index} end {start_index+intraday_index} {beautify_date(full_datetime[start_index+intraday_index])}')
     try:
 
         sos = signal.butter(order, fc, 'highpass', fs=fs, output='sos')
@@ -62,21 +72,21 @@ def calc(full_sig, intraday_index, order, fc, fs, disp=False, start_index=0):
 
         first_day_colored_index = colored_indexes[0][np.where(colored_indexes[0] > start_index)[0][0]]
         first_day_colored_index_color = color_array[first_day_colored_index]
-        if disp:
-            print(f'calc first_day_colored_index {first_day_colored_index} first_day_colored_index_color {first_day_colored_index_color} colored_indexes {colored_indexes}')
+        #if disp:
+        #    print(f'calc first_day_colored_index {first_day_colored_index} first_day_colored_index_color {first_day_colored_index_color} colored_indexes {colored_indexes}')
     except:
         if disp:
             print(f'no first action')
 
     colored_array = color_array[colored_indexes]
-    if disp:
-        print (f'calc colored_array {colored_array}')
+    #if disp:
+    #    print (f'calc colored_array {colored_array}')
     buy_colored_index = np.where(np.diff(colored_array) > 0)[0] + 1
     sell_colored_index = np.where(np.diff(colored_array) < 0)[0] + 1
 
-    if disp:
-        print (f'calc buy_colored_index {buy_colored_index}')
-        print (f'calc sell_colored_index {sell_colored_index}')
+    #if disp:
+    #    print (f'calc buy_colored_index {buy_colored_index}')
+    #    print (f'calc sell_colored_index {sell_colored_index}')
 
     buy_index = np.take(colored_indexes, buy_colored_index)
     sell_index = np.take(colored_indexes, sell_colored_index)
@@ -107,6 +117,9 @@ def gain(full_sig, full_color_array, full_buy_sell_array, start_index, end_index
         print(f'----------- gain index: {start_index}, {end_index}')
 
     buy_sell_array = full_buy_sell_array[start_index:end_index + 1]
+
+    buy_sell_array = np.insert(buy_sell_array, 0,0)
+
     color_array = full_color_array[start_index:end_index + 1]
     non_zero_color_index = np.where(color_array != 0)
     #if len(non_zero_color_index[0]) > 0:
@@ -122,7 +135,7 @@ def gain(full_sig, full_color_array, full_buy_sell_array, start_index, end_index
 
     if (not np.any(buy_sell_array)):
         return (-1000, -100, 0, 0)
-    sig = full_sig[start_index:end_index + 1]
+    sig = full_sig[start_index:end_index + 2]
     action_sig = np.append(sig[non_zero_index], sig[-1])
     if disp:
         # print (f'color_array {color_array}')
@@ -143,6 +156,7 @@ def gain(full_sig, full_color_array, full_buy_sell_array, start_index, end_index
 
 
 def datetime_to_index(full_datetime, datestart, dateend=None):
+    #print(f'datetime_to_index {full_datetime} ')
     if dateend is None:
         datestart_int = int(f'{datestart}{open_bell}')
         dateend_int = int(f'{datestart}{close_bell}')
@@ -176,7 +190,7 @@ def get_best_parameters(full_sig, full_datetime, days_list):
                 sum_account = 0
                 sum_pc = 0
                 sum_nb_orders = 0
-                (full_color_array, full_buy_sell_array, full_hyst) = calc(full_sig, None, order, fc, fs, False, min_start_index)
+                (full_color_array, full_buy_sell_array, full_hyst) = calc(full_sig, full_datetime, None, order, fc, fs, False, min_start_index)
                 for day_indexes in days_list_indexes:
                     (start_index, end_index) = day_indexes
                     (account, pc, papers, nb_orders) = gain(full_sig, full_color_array, full_buy_sell_array, start_index, end_index, disp=False)
@@ -199,23 +213,22 @@ def replot(ax, full_sig, full_datetime, datestart, dateend, order, fc, fs, intra
     print(f'_____________________ replot {datestart}  {dateend}, {order} {fc} {fs} {intraday_index}')
 
     ax.clear()
-    (start_index, end_index) = datetime_to_index(full_datetime, datestart, dateend)
+    (start_index, day_end_index) = datetime_to_index(full_datetime, datestart, dateend)
 
     end_index = start_index + intraday_index
 
-    (full_color_array, full_buy_sell_array, full_hyst) = calc(full_sig, intraday_index, order, fc, fs, True, start_index)
-
-    (account, pc, papers, nb_orders) = gain(full_sig, full_color_array, full_buy_sell_array, start_index, end_index, disp=True)
-    # print (f'after gain full_buy_sell_array {full_buy_sell_array[start_index:end_index]}')
-    print(f'len(full_sig) {len(full_sig)}')
+    (full_color_array, full_buy_sell_array, full_hyst) = calc(full_sig, full_datetime, intraday_index, order, fc, fs, False, start_index)
+    (account, pc, papers, nb_orders) = gain(full_sig, full_color_array, full_buy_sell_array, start_index, end_index, disp=False)
+    #print(f'len(full_sig) {len(full_sig)}')
+    full_buy_sell_array = np.insert(full_buy_sell_array, 0, 0)
 
     hystcolor = pd.DataFrame({'full_sig': full_sig[:start_index+intraday_index], 'full_color_array': full_color_array[:start_index+intraday_index]})
     buy_sell_color = pd.DataFrame({'full_sig': full_sig[:start_index+intraday_index], 'full_buy_sell_array': full_buy_sell_array[:start_index+intraday_index]})
 
     color_groups = hystcolor.groupby('full_color_array')
     buy_sell_groups = buy_sell_color.groupby('full_buy_sell_array')
-
-    text = f'{datestart} account {account:.2f} {100 * pc:.2f}% nb_orders {nb_orders} papers {papers} ({order}/{fc}/{fs})'
+    print (f'full_buy_sell_array {full_buy_sell_array}')
+    text = f'{datestart} account:{account:.2f} {100 * pc:.2f}% nb_orders:{nb_orders} action:{full_buy_sell_array[-2]} ({order}/{fc}/{fs})'
     for name, group in buy_sell_groups:
         # print (name)
         if name == 1:
@@ -237,31 +250,37 @@ def replot(ax, full_sig, full_datetime, datestart, dateend, order, fc, fs, intra
         ax.plot(group.full_sig, color=color, marker='o', linestyle='', markersize=5, label=name)
 
 
+    if full_buy_sell_array[-2] < 0:
+        ax.plot(end_index, full_sig[end_index], color='r', marker='o', linestyle='', markersize=10, label=name)
+
+    if full_buy_sell_array[-2] > 0:
+        ax.plot(end_index, full_sig[end_index], color='g', marker='o', linestyle='', markersize=10, label=name)
+
     sig = full_sig[start_index:end_index]
     hyst = full_hyst[start_index:end_index]
 
     xmin = start_index - 10
     ymin = min(np.min(sig), np.min(hyst))
-    xmax = start_index + 400  # end_index +10
+    xmax = day_end_index + 30
     ymax = max(np.max(sig), np.max(hyst))
 
     ax.axvline(x=start_index, color='#1f77b4')
     ax.axvline(x=end_index, color='#1f77b4')
 
 
-    ax.plot(full_sig[:start_index+intraday_index])  # ax.plot(time, sig)
+    ax.plot(full_sig[:start_index+intraday_index+1])  # ax.plot(time, sig)
     ax.plot(full_hyst)
     ax.set_title(f'{symbol} {text}')
 
     for i in range(start_index, start_index+intraday_index + 1):
         if full_buy_sell_array[i] == -1.0 or full_buy_sell_array[i] == 1.0 or i == end_index:
-            ax.text(i, full_sig[i], f'{str(full_sig[i])} {str(full_datetime[i])[4:8]} {str(full_datetime[i])[8:12]}')
+            ax.text(i, full_sig[i], f'{full_sig[i]:.2f} {str(full_datetime[i])[4:8]} {str(full_datetime[i])[8:14]}')
 
     ax.set_xlabel('Time')
 
-    print(f'start_index {start_index}  end_index {end_index} {end_index - start_index}')
-    ax.set_xticks(range(len(full_datetime))[::10])
-    ax.set_xticklabels(full_datetime[::10], rotation=45, ha="right")
+    #print(f'start_index {start_index}  end_index {end_index} {end_index - start_index}')
+    ax.set_xticks(range(len(full_datetime))[::3])
+    ax.set_xticklabels(full_datetime[::3], rotation=45, ha="right")
 
     # for label in ax.get_xticklabels():
     #    label.set_ha("right")
@@ -270,32 +289,30 @@ def replot(ax, full_sig, full_datetime, datestart, dateend, order, fc, fs, intra
     # ax.axis([np.min(time), np.max(time), np.min(sig), np.max(sig)])
     ax.set(xlim=(xmin, xmax), ylim=(ymin, ymax))
     plt.draw()
+    print (f' {full_sig[-5:]}')
     print(f'--------------------------------- end replot ----------------------------')
 
 
 def update_date(val):
-    calc_date = int(check.value_selected)
+    calc_date = int(date_radio.value_selected)
     print(f'___________ update_date {calc_date}____________________')
     update(0)
 
 
 def update_best_today(val):
-    calc_date = check.value_selected
+    calc_date = date_radio.value_selected
     print(f'___________ update_best_today {calc_date}____________________')
     day_list = [calc_date]
     print(f'day_list {day_list}')
     update_best(day_list)
 
 
-def update_last_days(val):
-    calc_date = np.int64(check.value_selected)
-    print(f'___________ update_last_days {calc_date}____________________')
-    print(f'{unique_dates} {type(unique_dates)} {type(unique_dates[0])}')
+def update_best_x_days(val):
+    calc_date = int(date_radio.value_selected)
+    u = unique_dates.tolist()
+    print (f'calc_date {calc_date}  u {u}')
+    dateend_index = u.index(calc_date)
 
-    print (f'calc_date {calc_date} {type(calc_date)} ')
-    print (f'np where {np.where(unique_dates == calc_date)}')
-    dateend_index = np.where(unique_dates == calc_date)[0][0]
-    print(f'{unique_dates}')
     datestart_index = dateend_index - nbjours
     if datestart_index < 0:
         datestart_index = 0
@@ -312,38 +329,75 @@ def update_best(day_list):
     order_slider.set_val(best_order)
     critical_slider.set_val(best_fc)
     sampling_slider.set_val(best_fs)
-    update(0)
+    change_date(0)
+
+def change_date(val):
+
+    datestart_index, end_index = datetime_to_index(full_datetime, date_radio.value_selected)
+    intraday_index_slider.ax.set_xlim(0, end_index - datestart_index + 5)
+    intraday_index_slider.set_val(end_index - datestart_index)
+    update(None)
 
 
 def update(val):
-    # datestart = int(f'{check.value_selected}150000')
-    # dateend = int(f'{check.value_selected}220000')
+    # datestart = int(f'{date_radio.value_selected}150000')
+    # dateend = int(f'{date_radio.value_selected}220000')
 
-    print(f'============================== update {check.value_selected} ')
+    print(f'============================== update {date_radio.value_selected} ')
 
     intraday_index = intraday_index_slider.val
-    replot(ax, full_sig, full_datetime, check.value_selected, None, order_slider.val, critical_slider.val, sampling_slider.val, intraday_index)
+    replot(ax, full_sig, full_datetime, date_radio.value_selected, None, order_slider.val, critical_slider.val, sampling_slider.val, intraday_index)
+
+def stock_up(val):
+    print (f'====================================== ++++++')
+    add_value(0.3)
+
+def stock_down(val):
+    print (f'====================================== -------')
+    add_value(-0.3)
 
 
-detailled_history = stockapi.get_from_vantage(symbol)
+def add_value(myvalue):
+    print (f'add_value {myvalue}')
+    global full_datetime
+    global full_sig
+    global dates
+
+    #print (f'before {full_datetime}')
+    now = datetime.now(newyork_tz)
+
+    print (f"=================== {now}")
+
+    new_datetime = int(now.strftime('%Y%m%d%H%M%S'))
+
+
+    new_close = full_sig[-1] + myvalue
+    new_date = int(now.strftime('%Y%m%d'))
+    full_datetime = np.append(full_datetime, new_datetime)
+    #print (f'after {full_datetime}')
+    full_sig = np.append(full_sig, new_close)
+    dates = np.append(dates, new_date)
+    change_date(0)
+
+
+fig, ax = plt.subplots()
+detailled_history = stockapi.get_from_vantage_and_yahoo(symbol)
 full_datetime = np.array(detailled_history["datetime"]).astype(np.longlong)
-print(full_datetime)
 dates = np.array(detailled_history["date"])
 full_sig = np.array(detailled_history["close"])
 
-datestart = 20210915
-dateend = 20210917
+
+
 
 mindate = int(min(dates))
 calc_date = int(max(dates))
 unique_dates = np.unique(dates)
 visible_dates = np.ones(len(unique_dates))
-fig, ax = plt.subplots()
 plt.subplots_adjust(left=0.12, bottom=0.25, right=0.9)
 
-check_ax = plt.axes([0.0, 0.2, 0.1, 0.7])
-check = RadioButtons(check_ax, np.flip(unique_dates))
-for c in check.circles:  # adjust radius here. The default is 0.05
+date_radio_ax = plt.axes([0.0, 0.2, 0.1, 0.7])
+date_radio = RadioButtons(date_radio_ax, np.flip(unique_dates))
+for c in date_radio.circles:  # adjust radius here. The default is 0.05
     c.set_radius(0.01)
 
 order_axe = plt.axes([0.91, 0.1, 0.015, 0.8], facecolor=axcolor)
@@ -388,19 +442,30 @@ intraday_index_slider = Slider(
     valinit=intraday_index
 )
 
-best_axe = plt.axes([0.01, 0.02, 0.05, 0.05], facecolor=axcolor)
-best_last_day = Button(best_axe, f'Best {nbjours} d')
-best_axe = plt.axes([0.01, 0.08, 0.05, 0.05], facecolor=axcolor)
-best_today = Button(best_axe, 'Best today')
-
-update_axe = plt.axes([0.01, 0.14, 0.05, 0.05], facecolor=axcolor)
+update_axe = plt.axes([0.01, 0.14, 0.04, 0.05], facecolor=axcolor)
 update_now = Button(update_axe, 'update')
 
-intraday_index_slider.on_changed(update)
-check.on_clicked(update)
-best_last_day.on_clicked(update_last_days)
+best_axe = plt.axes([0.01, 0.08, 0.04, 0.05], facecolor=axcolor)
+best_today = Button(best_axe, 'Best today')
+
+best_axe = plt.axes([0.01, 0.02, 0.04, 0.05], facecolor=axcolor)
+best_x_days = Button(best_axe, f'Best {nbjours} d')
+
+up_axe = plt.axes([0.05, 0.14, 0.04, 0.05], facecolor=axcolor)
+action_up = Button(up_axe, '+')
+
+down_axe = plt.axes([0.05, 0.08, 0.04, 0.05], facecolor=axcolor)
+action_down = Button(down_axe, '-')
+
+
+#intraday_index_slider.on_changed(update)
+date_radio.on_clicked(change_date)
+best_x_days.on_clicked(update_best_x_days)
 best_today.on_clicked(update_best_today)
 update_now.on_clicked(update)
-update(0)
-
+action_up.on_clicked(stock_up)
+action_down.on_clicked(stock_down)
 plt.show()
+change_date(0)
+
+
