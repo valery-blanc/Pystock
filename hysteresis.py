@@ -3,28 +3,28 @@ import numpy as np
 import pandas as pd
 from matplotlib.widgets import Slider, Button, RadioButtons
 from scipy import signal
-from datetime import datetime
+from datetime import date, timedelta, datetime
 import pytz
 import stockapi
-
-
+import etrade
+import time
 global full_datetime
 global full_sig
 global dates
 
 newyork_tz = pytz.timezone('America/New_York')
-symbol = 'ABG'
-DELTA = 0.001
+symbol = 'TSLA'
+DELTA = 0.01
 order = 3
-nbjours = 10
-max_nb_order_per_day = 40
-critical_freq = 15
-sampling_freq = 1750
+nbjours = 22
+max_nb_order_per_day = 50
+critical_freq = 8
+sampling_freq = 1520
 axcolor = 'lightgoldenrodyellow'
 intraday_index = 50
 
-open_bell = "093000"
-close_bell = "170000"
+open_bell =  "100000"
+close_bell = "153000"
 green_sign_array = np.empty(3000)
 green_sign_array[::2] = 1
 green_sign_array[1::2] = -1
@@ -157,12 +157,18 @@ def gain(full_sig, full_color_array, full_buy_sell_array, start_index, end_index
 
 def datetime_to_index(full_datetime, datestart, dateend=None):
     #print(f'datetime_to_index {full_datetime} ')
+
+
     if dateend is None:
         datestart_int = int(f'{datestart}{open_bell}')
         dateend_int = int(f'{datestart}{close_bell}')
     else:
         datestart_int = datestart
         dateend_int = dateend
+
+    if datestart_int > full_datetime[-1]:
+        return (None, None)
+
     start_index = np.where(full_datetime >= datestart_int)[0][0]
     end_index = np.where(full_datetime <= dateend_int)[0][-1]
 
@@ -183,10 +189,10 @@ def get_best_parameters(full_sig, full_datetime, days_list):
     (min_start_index, min_end_index) = days_list_indexes[0]
 
     print(f' min indexes {min_start_index}  {min_end_index}   {full_datetime[min_start_index]}  {full_datetime[min_end_index]} ')
-    for order in [3.0, 4.0, 5.0, 6.0]:
+    for order in [3.0]:
         print(order)
-        for fc in range(8, 25, 1):
-            for fs in range(800, 2000, 5):  # np.logspace(1.8,3.7,400, True, 8): #range(2 * fc + 1, 400, 1): #
+        for fc in [8]: #range(8, 25, 1):
+            for fs in range(1000, 1850, 1):  # np.logspace(1.8,3.7,400, True, 8): #range(2 * fc + 1, 400, 1): #
                 sum_account = 0
                 sum_pc = 0
                 sum_nb_orders = 0
@@ -209,11 +215,28 @@ def get_best_parameters(full_sig, full_datetime, days_list):
     return (best_account, best_pc, best_nb_orders, best_order, best_fc, best_fs)
 
 
+def plot_last (ax, full_sig, full_datetime,full_color_array, full_buy_sell_array, full_hyst):
+    color_dict = {-1: 'r', 0:'w', 1:'g'}
+    color = full_color_array[-1]
+    buysell = full_buy_sell_array[-1]
+    hyst = full_hyst[-2:]
+    sig = full_sig[-2:]
+    x = [len(full_datetime)-1, len(full_datetime)]
+    lastx = len(full_datetime)
+
+    ax.plot(x, sig)
+    ax.plot(x, hyst)
+    ax.plot(lastx,color, color=color_dict[color], marker='o', linestyle='', markersize=5)
+    ax.plot(lastx,buysell, color=color_dict[color], marker='|', linestyle='', markersize=5)
+
+
 def replot(ax, full_sig, full_datetime, datestart, dateend, order, fc, fs, intraday_index):
     print(f'_____________________ replot {datestart}  {dateend}, {order} {fc} {fs} {intraday_index}')
 
     ax.clear()
     (start_index, day_end_index) = datetime_to_index(full_datetime, datestart, dateend)
+    if not day_end_index:
+        return
 
     end_index = start_index + intraday_index
 
@@ -309,9 +332,9 @@ def update_best_today(val):
 
 def update_best_x_days(val):
     calc_date = int(date_radio.value_selected)
-    u = unique_dates.tolist()
-    print (f'calc_date {calc_date}  u {u}')
-    dateend_index = u.index(calc_date)
+    print (f'calc_date {calc_date}  ')
+
+    dateend_index = list(unique_dates).index(calc_date)
 
     datestart_index = dateend_index - nbjours
     if datestart_index < 0:
@@ -350,7 +373,13 @@ def update(val):
 
 def stock_up(val):
     print (f'====================================== ++++++')
-    add_value(0.3)
+    market = etrade.get_market(etrade.token)
+    for i in range(0, 30):
+        last = etrade.get_last_price(market, symbol)
+        print(f'{last}')
+        add_value(last)
+        time.sleep(10)
+
 
 def stock_down(val):
     print (f'====================================== -------')
@@ -363,25 +392,14 @@ def add_value(myvalue):
     global full_sig
     global dates
 
-    #print (f'before {full_datetime}')
-    now = datetime.now(newyork_tz)
-
-    print (f"=================== {now}")
-
-    new_datetime = int(now.strftime('%Y%m%d%H%M%S'))
-
-
-    new_close = full_sig[-1] + myvalue
-    new_date = int(now.strftime('%Y%m%d'))
-    full_datetime = np.append(full_datetime, new_datetime)
-    #print (f'after {full_datetime}')
-    full_sig = np.append(full_sig, new_close)
-    dates = np.append(dates, new_date)
+    full_datetime = np.append(full_datetime, myvalue['date'])
+    full_sig = np.append(full_sig, myvalue['close'])
+    dates = np.append(dates, myvalue['date'])
     change_date(0)
 
 
 fig, ax = plt.subplots()
-detailled_history = stockapi.get_from_vantage_and_yahoo(symbol)
+detailled_history = stockapi.get_from_vantage(symbol)
 full_datetime = np.array(detailled_history["datetime"]).astype(np.longlong)
 dates = np.array(detailled_history["date"])
 full_sig = np.array(detailled_history["close"])
@@ -392,6 +410,16 @@ full_sig = np.array(detailled_history["close"])
 mindate = int(min(dates))
 calc_date = int(max(dates))
 unique_dates = np.unique(dates)
+
+edate = datetime.now()
+sdate  = edate - timedelta(days=30)
+delta = edate - sdate
+
+unique_dates = np.unique(dates)
+
+print(f' unique_dates {unique_dates} ')
+
+
 visible_dates = np.ones(len(unique_dates))
 plt.subplots_adjust(left=0.12, bottom=0.25, right=0.9)
 

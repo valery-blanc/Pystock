@@ -3,11 +3,12 @@ import time
 import datetime, pytz
 import json
 import os
-import platform
+import pandas as pd
+from pathlib import Path
 
 consumer_key = "7054284dfb42fd505030408d4ec0d4d3"
 consumer_secret = "1e9dee8bc1bd2b62a3a555560f635bbf4689512f03441e1bdea0a0487f79a108"
-token = {'oauth_token': 'n1ToLbNbZD3noo9NYSvDbzDdNZzzzHwGrfGEOECf2SM=', 'oauth_token_secret': 'JiU+Pk9PtJ58Cg1/DWVxN+9m8Q+OCY+/obVm/4+Y/q8='}
+token = {'oauth_token': 'TjBpug93PD1z+MQEgSK7rrc4U/HqVLNyOZ7d27jNx/8=', 'oauth_token_secret': 'mPSdXOS6bs0qQ2zobM9OEtbOornAeoO3lutjdkriI4U='}
 symbol = 'TSLA'
 
 
@@ -18,15 +19,16 @@ def creation_date(path_to_file):
     return mydate.strftime("%Y%m%d")
 
 def get_token():
-    token_date = creation_date("token.txt")
     token = None
 
-    if token_date == datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d"):
-        try:
+    try:
+        token_date = creation_date("token.txt")
+        if  token_date == datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d"):
             with open('token.txt', 'r') as file:
                 token = json.load(file)
-        except:
-            print ('token not read')
+                print ('token form file')
+    except:
+        print ('token not read')
 
     if not token:
         oauth = pyetrade.ETradeOAuth(consumer_key, consumer_secret)
@@ -54,9 +56,17 @@ def get_quote(symbols, token):
     #    print(q['All'])
 
 def get_last_price (market, symbol):
+    now = datetime.datetime.now(pytz.timezone('US/Eastern'))
+    mydatetime = now.strftime("%Y%m%d%H%M%S")
+    mytime = int(mydatetime)
+    mydate = int(mydatetime[:8])
     quote = market.get_quote([symbol], detail_flag='intraday', skip_mini_options_check=True, resp_format='json')
-    last_price = quote['QuoteResponse']['QuoteData'][0]['Intraday']['lastTrade']
-    return last_price
+
+    line = quote['QuoteResponse']['QuoteData'][0]['Intraday']
+    print (line)
+    myvolume = line['totalVolume']
+    myclose = line['lastTrade']
+    return {'time':mytime, 'date':mydate, 'close':myclose, 'volume':myvolume}
 
 def get_market(token):
     start = time.time()
@@ -72,6 +82,7 @@ def stream_quote(symbol,token):
         q = quote['QuoteResponse']['QuoteData'][0]['Intraday']
         nyc_datetime = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y-%m-%d %H:%M:%S.%f")
         print(f" {nyc_datetime} {q['lastTrade']}")
+        time.sleep(10)
     end = time.time()
     print(end - start)
 
@@ -118,16 +129,15 @@ def list_order (token, account_id_key):
     print(f"list : {orders.list_orders(account_id_key, resp_format='json')}")
 
 
-token = get_token()
-
-
-market = get_market(token)
-for i in range(0,30):
-    nyc_datetime = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y-%m-%d %H:%M:%S.%f")
-    last = get_last_price(market, symbol)
-    print (f'{nyc_datetime} {symbol} {last}')
-
-
+#token = get_token()
+##quit()
+#
+#market = get_market(token)
+#for i in range(0,30):
+#    last = get_last_price(market, symbol)
+#    print (f'{last}')
+#    time.sleep(10)
+#
 
 
 #accounts = list_accounts(token)

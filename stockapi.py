@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from zipfile import ZipFile
 import yfinance
@@ -38,10 +38,10 @@ def get_from_vantage(symbol):
             detailled_history = pd.read_csv(filename)
     return (detailled_history)
 
-
-def get_from_yahoo (symbol):
+def get_from_yahoo2 (symbol):
     print ("___________________ yahoo ______________________")
     detailled_history = yfinance.download(tickers=symbol, period="1d", interval="1m")
+    print (f'detailled_history\n {detailled_history}')
 
     detailled_history = detailled_history.reset_index()
     detailled_history["datetime"] = pd.to_datetime(detailled_history["Datetime"])
@@ -49,6 +49,29 @@ def get_from_yahoo (symbol):
     detailled_history['date'] = detailled_history['datetime'].str[:8].astype(int)
     detailled_history = detailled_history.drop([ 'Open', 'High', 'Low', 'Adj Close'], axis=1)
     detailled_history.rename(columns={'Close': 'close', 'Datetime' : 'time', 'Volume':'volume'}, inplace=True)
+    return detailled_history
+
+
+
+def get_from_yahoo (symbol, shift = 0):
+    print ("___________________ yahoo ______________________")
+    start = (datetime.now(pytz.timezone('US/Eastern')) -  timedelta(hours=shift) ).strftime("%Y-%m-%d")
+    end = (datetime.now(pytz.timezone('US/Eastern')) -  timedelta(hours=shift) + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    print (f'real start {start}')
+    print (f'real end {end}')
+
+    if shift == 0:
+        detailled_history = yfinance.download(tickers=symbol, period="1d", interval="1m")
+    else:
+        detailled_history = yfinance.download(tickers=symbol, start=start, end=end, interval="1m")
+
+
+    detailled_history = detailled_history.reset_index()
+    detailled_history["time"] = (pd.to_datetime(detailled_history["Datetime"]) +  timedelta(hours=shift)).dt.strftime('%Y%m%d%H%M%S')  # '%Y%m%d%H%M%s'
+    detailled_history['date'] = detailled_history['time'].str[:8].astype(int)
+    detailled_history = detailled_history.drop([ 'Open', 'High', 'Low', 'Adj Close', 'Datetime'], axis=1)
+    detailled_history.rename(columns={'Close': 'close', 'Volume':'volume'}, inplace=True)
     return detailled_history
 
 
@@ -87,5 +110,6 @@ def get_from_vantage_and_yahoo(symbol):
     c = concatenate (a,b)
     return c
 
-#c = get_from_vantage_and_yahoo('TSLA')
+
+#c = get_from_yahoo('TSLA', 49)
 #print (c)
