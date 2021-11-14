@@ -17,7 +17,7 @@ global full_sig
 global dates
 
 newyork_tz = pytz.timezone('America/New_York')
-symbol = 'TSLA'
+symbol = 'AAPL'
 DELTA = 0.029
 order = 3
 nbjours = 20

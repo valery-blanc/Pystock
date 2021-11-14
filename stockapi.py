@@ -129,10 +129,11 @@ def concatenate(a, b):
     first_b_time = int(b.iloc[0]['time'])
     print (f' concatenate, junction on {first_b_time} ')
     first_b_time_index = -1
-    first_b_time_index = np.where (a['time'] >= first_b_time )[0][0]
-    #except:
-    #    first_b_time_index = -1
-    #    print (f'concatenate first index not found')#not found
+    try:
+        first_b_time_index = np.where (a['time'].astype(int) >= first_b_time )[0][0]
+    except:
+        first_b_time_index = -1
+        print (f'concatenate first index not found')#not found
 
     print (f'concatenate {first_b_time_index}')#not found
 
