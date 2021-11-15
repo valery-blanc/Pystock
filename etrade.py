@@ -12,7 +12,7 @@ token = {'oauth_token': 'TjBpug93PD1z+MQEgSK7rrc4U/HqVLNyOZ7d27jNx/8=', 'oauth_t
 symbol = 'TSLA'
 account_id_key = 'lZoUChkHRHCYTtouLpG4WQ'
 date_now = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d")
-logging.basicConfig(format='%(asctime)s: %(message)s', filename=f'etrade_{date_now}.log',  level=logging.INFO)
+logging.basicConfig(format='%(message)s', filename=f'etrade_{date_now}.log',  level=logging.INFO)
 
 def format_preview_response (preview):
     nyc_datetime = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y-%m-%d %H:%M:%S")
@@ -174,7 +174,7 @@ def list_order(token, account_id_key):
 
 
 
-#token = get_token()
+token = get_token()
 ###quit()
 ##
 
