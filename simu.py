@@ -1,6 +1,5 @@
 import sys
 import time
-from datetime import timedelta, datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,19 +7,16 @@ import pandas as pd
 import pytz
 from matplotlib.widgets import Slider, RangeSlider, Button, RadioButtons
 
-import etrade
-import formulas
 import stockapi
 from formulas import datetime_to_index, calculate_buy_sell, calculate_gain, itterative_calculate_gain
 
-
 newyork_tz = pytz.timezone('America/New_York')
 
-symbol_list = ['YMM','RANI','OTLY','CAN','DOCN','CSPR','TSLA','ASAN','BILI','LYFT','DIDI','BTAI','DQ','EYPT','BEKE','FCX','AMD','TLS','WDC','TX','STX','BFLY',]
+symbol_list = ['YMM', 'RANI', 'OTLY', 'CAN', 'DOCN', 'CSPR', 'TSLA', 'ASAN', 'BILI', 'LYFT', 'DIDI', 'BTAI', 'DQ', 'EYPT', 'BEKE', 'FCX', 'AMD', 'TLS', 'WDC', 'TX', 'STX', 'BFLY', ]
 
-#symbol_list = ['AAPL', 'NTES', 'STX', 'TX', 'WDC', 'LYFT', 'FNF', 'DAL', 'TPR']
+# symbol_list = ['AAPL', 'NTES', 'STX', 'TX', 'WDC', 'LYFT', 'FNF', 'DAL', 'TPR']
 # symbol_list = ['TSLA', 'APP', 'AMD','ASAN','BILI','BKI','CAN','DQ','DIDI','DOCN','DASH','FTCH','FCX','YMM','JD','BEKE'	]
-#symbol_list = ['TLS','CREX','CSPR','PNBK','EYPT','OTLY','KERN','SSNT','BFLY','BTB','BTAI','MJXL','RANI','VRCA','BGRY']
+# symbol_list = ['TLS','CREX','CSPR','PNBK','EYPT','OTLY','KERN','SSNT','BFLY','BTB','BTAI','MJXL','RANI','VRCA','BGRY']
 
 detailled_history_dict = dict()
 DELTA = 0.029
@@ -34,7 +30,17 @@ intraday_index = 50
 MAX_GAIN = 50.0
 
 
-def get_best_pc_average (full_sig, full_datetime, days_list):
+def get_detailled_history(symbol):
+    if not symbol in detailled_history_dict.keys():
+        detailled_history_dict[symbol] = dict()
+        detailled_history = stockapi.get_from_vantage_and_logs(symbol)
+        detailled_history_dict[symbol]['full_datetime'] = np.array(detailled_history["time"]).astype(np.longlong)
+        detailled_history_dict[symbol]['dates'] = np.array(detailled_history["date"])
+        detailled_history_dict[symbol]['full_sig'] = np.array(detailled_history["close"])
+    return detailled_history_dict[symbol]
+
+
+def get_best_pc_average(full_sig, full_datetime, days_list):
     start = time.time()
     best_order = 3
     best_moy = -100000.0
@@ -42,18 +48,18 @@ def get_best_pc_average (full_sig, full_datetime, days_list):
     best_fs = 0
     best_delta = DELTA
     max_nb_orders = max_nb_order_per_day * len(days_list)
-    for delta_i in range(10, 200, 10) : #[0.04,0.05, 0.06, 0.07,]:
+    for delta_i in range(10, 200, 10):  # [0.04,0.05, 0.06, 0.07,]:
         delta = float(delta_i) / 1000.0
-        #print (".", end = '')
-        for fs in range (50, 1900, 100): #(1480, 1520, 1):
-                moy, pc_array, sum_nb_orders = simu_all_dates(full_sig, full_datetime, days_list, best_order, best_fc, fs, delta)
-                if moy > best_moy and sum_nb_orders < max_nb_orders:
-                    best_moy = moy
-                    best_fs = fs
-                    best_delta = delta
+        # print (".", end = '')
+        for fs in range(50, 4000, 100):  # (1480, 1520, 1):
+            moy, pc_array, sum_nb_orders = simu_all_dates(full_sig, full_datetime, days_list, best_order, best_fc, fs, delta)
+            if moy > best_moy and sum_nb_orders < max_nb_orders:
+                best_moy = moy
+                best_fs = fs
+                best_delta = delta
     end = time.time()
-    #print(f'=========== time {end - start}')
-    return (best_moy,  best_order, best_fc, best_fs, best_delta)
+    # print(f'=========== time {end - start}')
+    return (best_moy, best_order, best_fc, best_fs, best_delta)
 
 
 def get_best_parameters(full_sig, full_datetime, days_list):
@@ -72,9 +78,9 @@ def get_best_parameters(full_sig, full_datetime, days_list):
     (min_start_index, min_end_index) = days_list_indexes[0]
 
     print(f' min indexes {min_start_index}  {min_end_index}   {full_datetime[min_start_index]}  {full_datetime[min_end_index]} ')
-    for order in range (2,7):
+    for order in range(2, 7):
         print(order)
-        for fc in range(8, 25, 1): #[8]:  # range(8, 25, 1):
+        for fc in range(8, 25, 1):  # [8]:  # range(8, 25, 1):
             for delta in [0.005, 0.01, 0.05]:
                 for fs in range(100, 3000, 50):  # np.logspace(1.8,3.7,400, True, 8): #range(2 * fc + 1, 400, 1): #
                     sum_account = 0
@@ -102,7 +108,7 @@ def get_best_parameters(full_sig, full_datetime, days_list):
     return (best_account, best_pc, best_nb_orders, best_order, best_fc, best_fs, best_delta)
 
 
-#def plot_last(ax, full_sig, full_datetime, full_color_array, full_buy_sell_array, full_hyst):
+# def plot_last(ax, full_sig, full_datetime, full_color_array, full_buy_sell_array, full_hyst):
 #    color_dict = {-1: 'r', 0: 'w', 1: 'g'}
 #    color = full_color_array[-1]
 #    buysell = full_buy_sell_array[-1]
@@ -116,27 +122,27 @@ def get_best_parameters(full_sig, full_datetime, days_list):
 #    ax.plot(lastx, color, color=color_dict[color], marker='o', linestyle='', markersize=5)
 #    ax.plot(lastx, buysell, color=color_dict[color], marker='|', linestyle='', markersize=5)
 
-def simu_all_dates (full_sig, full_datetime, day_list,  order, fc, fs, delta ):
-    #print (f'simu_all_dates {unique_dates}')
+def simu_all_dates(full_sig, full_datetime, day_list, order, fc, fs, delta):
+    # print (f'simu_all_dates {unique_dates}')
     pc_array = []
     sum_nb_orders = 0
     for mydate in day_list:
-        #print (f' mydate {mydate}')
+        # print (f' mydate {mydate}')
         (start_index, end_index) = datetime_to_index(full_datetime, mydate, None)
         (full_color_array, full_buy_sell_array, full_hyst) = calculate_buy_sell(full_sig, full_datetime, order, fc, fs, delta, False, start_index, end_index)
         (account, pc, papers, nb_orders) = calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, disp=False)
-        #(i_account, i_pc, i_papers, i_nb_orders) = itterative_calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, MAX_GAIN, disp=False)
+        # (i_account, i_pc, i_papers, i_nb_orders) = itterative_calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, MAX_GAIN, disp=False)
         sum_nb_orders = sum_nb_orders + nb_orders
         pc_array.append(pc)
-        #i_pc_array.append(i_pc)
+        # i_pc_array.append(i_pc)
 
-        #print (f'{mydate} {account:.2f} {100 * pc:.2f} ')
+        # print (f'{mydate} {account:.2f} {100 * pc:.2f} ')
 
-    moy = sum(pc_array)/len(pc_array)
-    #i_moy = sum(i_pc_array)/len(i_pc_array)
-    #print (f'std pc {100 * moy:.2f}')
-    #print (f'max pc {100 * i_moy:.2f}')
-    return moy, pc_array, sum_nb_orders #, i_moy
+    moy = sum(pc_array) / len(pc_array)
+    # i_moy = sum(i_pc_array)/len(i_pc_array)
+    # print (f'std pc {100 * moy:.2f}')
+    # print (f'max pc {100 * i_moy:.2f}')
+    return moy, pc_array, sum_nb_orders  # , i_moy
 
 
 def replot(ax, symbol, full_sig, full_datetime, datestart, dateend, order, fc, fs, delta, intraday_index_min, intraday_index_max):
@@ -146,15 +152,15 @@ def replot(ax, symbol, full_sig, full_datetime, datestart, dateend, order, fc, f
     (day_start_index, day_end_index) = datetime_to_index(full_datetime, datestart, dateend)
     if not day_end_index:
         return
-    end_index = day_start_index + intraday_index_max
+    end_index = min(day_start_index + intraday_index_max, day_end_index)
     start_index = day_start_index + intraday_index_min
-
-    print (f'replot start_index {start_index} end_index {end_index} day_start_index {day_start_index} day_end_index {day_end_index}')
-    print (f'replot start_index {full_datetime[start_index]} end_index {full_datetime[end_index]} day_start_index {full_datetime[day_start_index]} day_end_index {full_datetime[day_end_index]}')
+    print(f'replot len full_datetime {len(full_datetime)}')
+    print(f'replot start_index {start_index} end_index {end_index} day_start_index {day_start_index} day_end_index {day_end_index}')
+    print(f'replot start_index {full_datetime[start_index]} end_index {full_datetime[end_index]} day_start_index {full_datetime[day_start_index]} day_end_index {full_datetime[day_end_index]}')
 
     (full_color_array, full_buy_sell_array, full_hyst) = calculate_buy_sell(full_sig, full_datetime, order, fc, fs, delta, False, start_index, end_index)
     (account, pc, papers, nb_orders) = calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, disp=True)
-    (i_account, i_pc, i_papers, i_nb_orders) = itterative_calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, MAX_GAIN,  disp=True)
+    (i_account, i_pc, i_papers, i_nb_orders) = itterative_calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, MAX_GAIN, disp=True)
     print(f'i_account {i_account} i_pc {i_pc}')
     full_buy_sell_array = np.insert(full_buy_sell_array, 0, 0)
 
@@ -166,8 +172,8 @@ def replot(ax, symbol, full_sig, full_datetime, datestart, dateend, order, fc, f
     print(f'full_buy_sell_array {full_buy_sell_array}')
 
     moy, pc_array, sum_nb_orders = simu_all_dates(full_sig, full_datetime, unique_dates, order, fc, fs, delta)
-    print (f'pc_array {pc_array}')
-    text = f'{datestart} account:{account:.2f} {100.0 * pc:.2f}% {nb_orders} orders action:{full_buy_sell_array[-2]} | CAP${MAX_GAIN} {i_account:.2f} {(100.0 * i_pc):.2f}% {i_nb_orders} orders | {order}/{fc}/{fs} | moy {100*moy:.2f} '
+    print(f'pc_array {pc_array}')
+    text = f'{datestart} account:{account:.2f} {100.0 * pc:.2f}% {nb_orders} orders action:{full_buy_sell_array[-2]} | CAP${MAX_GAIN} {i_account:.2f} {(100.0 * i_pc):.2f}% {i_nb_orders} orders | {order}/{fc}/{fs} | moy {100 * moy:.2f} '
     for name, group in buy_sell_groups:
         # print (name)
         if name == 1:
@@ -202,10 +208,13 @@ def replot(ax, symbol, full_sig, full_datetime, datestart, dateend, order, fc, f
     xmax = day_end_index + 30
     ymax = max(np.max(sig), np.max(hyst))
 
+    nb_x = xmax - xmin
+    delta_label = int(nb_x / 60)
+    print(f' nb_x {nb_x} {int(nb_x / 60)}')
     ax.axvline(x=start_index, color='#1f77b4')
-    ax.text(start_index, ymin, f'{str(full_datetime[start_index])[8:12]}' )
+    ax.text(start_index, ymin, f'{str(full_datetime[start_index])[8:12]}')
     ax.axvline(x=end_index, color='#1f77b4')
-    ax.text(end_index, ymin, f'{str(full_datetime[end_index])[8:12]}' )
+    ax.text(end_index, ymin, f'{str(full_datetime[end_index])[8:12]}')
 
     ax.plot(full_sig[:end_index + 1])  # ax.plot(time, sig)
     ax.plot(full_hyst)
@@ -218,8 +227,8 @@ def replot(ax, symbol, full_sig, full_datetime, datestart, dateend, order, fc, f
     ax.set_xlabel('Time')
 
     # print(f'start_index {start_index}  end_index {end_index} {end_index - start_index}')
-    ax.set_xticks(range(len(full_datetime))[::10])
-    ax.set_xticklabels(full_datetime[::10], rotation=45, ha="right")
+    ax.set_xticks(range(len(full_datetime))[::delta_label])
+    ax.set_xticklabels(full_datetime[::delta_label], rotation=45, ha="right")
 
     # for label in ax.get_xticklabels():
     #    label.set_ha("right")
@@ -245,21 +254,29 @@ def update_best_today(val):
     print(f'day_list {day_list}')
     update_best(day_list)
 
-def update_best_20_days(val):
-    update_best_x_days(val,20)
-def update_best_10_days(val):
-    update_best_x_days(val,10)
-def update_best_5_days(val):
-    update_best_x_days(val,5)
-def update_best_3_days(val):
-    update_best_x_days(val,3)
-def update_best_1_days(val):
-    update_best_x_days(val,1)
 
+def update_best_20_days(val):
+    update_best_x_days(val, 20)
+
+
+def update_best_10_days(val):
+    update_best_x_days(val, 10)
+
+
+def update_best_5_days(val):
+    update_best_x_days(val, 5)
+
+
+def update_best_3_days(val):
+    update_best_x_days(val, 3)
+
+
+def update_best_1_days(val):
+    update_best_x_days(val, 1)
 
 
 def update_best_x_days(val, nb_days):
-    print (f' nb_days {nb_days} ')
+    print(f' nb_days {nb_days} ')
     calc_date = int(date_radio.value_selected)
     print(f'calc_date {calc_date}  ')
 
@@ -273,10 +290,11 @@ def update_best_x_days(val, nb_days):
 
     update_best(day_list)
 
+
 def best_all(val):
     nb_days = 10
     calc_date = int(date_radio.value_selected)
-    #print(f'calc_date {calc_date}  ')
+    # print(f'calc_date {calc_date}  ')
 
     dateend_index = list(unique_dates).index(calc_date)
 
@@ -284,11 +302,11 @@ def best_all(val):
     if datestart_index < 0:
         datestart_index = 0
     day_list = unique_dates[datestart_index:dateend_index]
-    #print(f'day_list {day_list}')
+    # print(f'day_list {day_list}')
 
     for symbol in symbol_list:
 
-        #print(f'---------update_best  {symbol} {day_list}  ')
+        # print(f'---------update_best  {symbol} {day_list}  ')
         # (best_account, best_pc, best_nb_orders, best_order, best_fc, best_fs, best_delta) = get_best_parameters(full_sig, full_datetime, day_list)
         try:
             full_datetime = get_detailled_history(symbol)['full_datetime']
@@ -298,14 +316,15 @@ def best_all(val):
         except:
             print(f'BEST {symbol} {nb_days} not found')
 
+
 def update_best(day_list):
     symbol = symbol_radio.value_selected
     print(f'---------update_best  {symbol} {day_list}  ')
-    full_datetime = get_detailled_history (symbol)['full_datetime']
-    full_sig = get_detailled_history (symbol)['full_sig']
-    #(best_account, best_pc, best_nb_orders, best_order, best_fc, best_fs, best_delta) = get_best_parameters(full_sig, full_datetime, day_list)
+    full_datetime = get_detailled_history(symbol)['full_datetime']
+    full_sig = get_detailled_history(symbol)['full_sig']
+    # (best_account, best_pc, best_nb_orders, best_order, best_fc, best_fs, best_delta) = get_best_parameters(full_sig, full_datetime, day_list)
 
-    (best_moy,  best_order, best_fc, best_fs, best_delta) = get_best_pc_average(full_sig, full_datetime, day_list)
+    (best_moy, best_order, best_fc, best_fs, best_delta) = get_best_pc_average(full_sig, full_datetime, day_list)
     print(f'BEST {best_moy} {best_order} {best_fc} {best_fs} {best_delta}')
     order_slider.set_val(best_order)
     critical_slider.set_val(best_fc)
@@ -316,46 +335,38 @@ def update_best(day_list):
 
 def change_date(val):
     symbol = symbol_radio.value_selected
-    full_datetime = get_detailled_history (symbol)['full_datetime']
+    full_datetime = get_detailled_history(symbol)['full_datetime']
 
     datestart_index, end_index = datetime_to_index(full_datetime, date_radio.value_selected)
     intraday_index_slider.ax.set_xlim(0, end_index - datestart_index + 5)
     intraday_index_slider.set_val([0, end_index - datestart_index])
     update(None)
 
-def get_detailled_history (symbol):
-    if not symbol in detailled_history_dict.keys():
-        detailled_history_dict[symbol] = dict()
-        detailled_history = stockapi.get_from_vantage(symbol)
-        detailled_history_dict[symbol]['full_datetime'] = np.array(detailled_history["time"]).astype(np.longlong)
-        detailled_history_dict[symbol]['dates'] = np.array(detailled_history["date"])
-        detailled_history_dict[symbol]['full_sig'] = np.array(detailled_history["close"])
-    return   detailled_history_dict[symbol]
 
 def update(val):
     print(f'============================== update {symbol_radio.value_selected} {date_radio.value_selected} ')
     symbol = symbol_radio.value_selected
 
-    full_datetime = get_detailled_history (symbol)['full_datetime']
-    full_sig = get_detailled_history (symbol)['full_sig']
-    dates = get_detailled_history (symbol)['dates']
+    full_datetime = get_detailled_history(symbol)['full_datetime']
+    full_sig = get_detailled_history(symbol)['full_sig']
+    dates = get_detailled_history(symbol)['dates']
 
     unique_dates = np.unique(dates)
     print(f' unique_dates {unique_dates} ')
 
-
     intraday_index_min, intraday_index_max = intraday_index_slider.val
-    replot(ax, symbol, full_sig, full_datetime, date_radio.value_selected, None, order_slider.val, critical_slider.val, sampling_slider.val, delta_slider.val, intraday_index_min,intraday_index_max)
+    replot(ax, symbol, full_sig, full_datetime, date_radio.value_selected, None, order_slider.val, critical_slider.val, sampling_slider.val, delta_slider.val, intraday_index_min, intraday_index_max)
+
 
 def calc_all(val):
     symbol = symbol_radio.value_selected
-    full_datetime = get_detailled_history (symbol)['full_datetime']
-    full_sig = get_detailled_history (symbol)['full_sig']
+    full_datetime = get_detailled_history(symbol)['full_datetime']
+    full_sig = get_detailled_history(symbol)['full_sig']
 
     simu_all_dates(full_sig, full_datetime, unique_dates, order_slider.val, critical_slider.val, sampling_slider.val, delta_slider.val)
 
 
-#def stock_up(val):
+# def stock_up(val):
 #    print(f'====================================== ++++++')
 #    market = etrade.get_market(etrade.token)
 #    for i in range(0, 30):
@@ -365,12 +376,12 @@ def calc_all(val):
 #        time.sleep(10)
 #
 #
-#def stock_down(val):
+# def stock_down(val):
 #    print(f'====================================== -------')
 #    add_value(-0.3)
 
 
-#def add_value(myvalue):
+# def add_value(myvalue):
 #    print(f'add_value {myvalue}')
 #    global full_datetime
 #    global full_sig
@@ -392,8 +403,6 @@ calc_date = int(max(first_dates))
 unique_dates = np.unique(first_dates)
 print(f' unique_dates {unique_dates} ')
 
-
-
 date_radio_ax = plt.axes([0.0, 0.2, 0.07, 0.4])
 date_radio = RadioButtons(date_radio_ax, np.flip(unique_dates))
 for c in date_radio.circles:  # adjust radius here. The default is 0.05
@@ -403,8 +412,6 @@ symbol_radio_ax = plt.axes([0.0, 0.62, 0.07, 0.3])
 symbol_radio = RadioButtons(symbol_radio_ax, symbol_list)
 for c in symbol_radio.circles:  # adjust radius here. The default is 0.05
     c.set_radius(0.02)
-
-
 
 order_axe = plt.axes([0.91, 0.1, 0.015, 0.8], facecolor=axcolor)
 order_slider = Slider(
@@ -456,7 +463,7 @@ intraday_index_slider = RangeSlider(
     valmin=0,
     valmax=1570,
     valstep=1,
-    valinit=(0,intraday_index)
+    valinit=(0, intraday_index)
 )
 
 update_axe = plt.axes([0.01, 0.14, 0.04, 0.05], facecolor=axcolor)
@@ -468,8 +475,7 @@ best_today = Button(best_axe, 'Best today')
 xx = 0.01
 i = 0
 best_x_buttons = []
-best_axes = []
-for nb_days in [20,10,5,3, 1]:
+for nb_days in [20, 10, 5, 3, 1]:
     best_axe = plt.axes([xx, 0.02, 0.03, 0.05], facecolor=axcolor)
     best_x_button = Button(best_axe, f'Best {nb_days} d')
     function_name = f'update_best_{nb_days}_days'
@@ -478,10 +484,8 @@ for nb_days in [20,10,5,3, 1]:
     best_x_buttons.append(best_x_button)
     xx = xx + .03
 
-
-
-#up_axe = plt.axes([0.05, 0.14, 0.04, 0.05], facecolor=axcolor)
-#action_up = Button(up_axe, '+')
+# up_axe = plt.axes([0.05, 0.14, 0.04, 0.05], facecolor=axcolor)
+# action_up = Button(up_axe, '+')
 #
 down_axe = plt.axes([0.05, 0.08, 0.04, 0.05], facecolor=axcolor)
 action_down = Button(down_axe, 'Best ALL')
@@ -489,10 +493,10 @@ action_down = Button(down_axe, 'Best ALL')
 # intraday_index_slider.on_changed(update)
 date_radio.on_clicked(change_date)
 symbol_radio.on_clicked(update)
-#best_x_days.on_clicked(update_best_x_days)
+# best_x_days.on_clicked(update_best_x_days)
 best_today.on_clicked(update_best_today)
 update_now.on_clicked(update)
-#action_up.on_clicked(stock_up)
+# action_up.on_clicked(stock_up)
 action_down.on_clicked(best_all)
 change_date(0)
 # update_best_x_days(0)

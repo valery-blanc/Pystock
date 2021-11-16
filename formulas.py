@@ -151,7 +151,7 @@ def calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, disp=F
     non_zero_bsa = buy_sell_array[non_zero_index]
 
     if (not np.any(buy_sell_array)):
-        return (-1000, -100, 0, 0)
+        return (0, 0, 0, 0)
     sig = full_sig[start_index:end_index + 2]
     non_zero_sig = sig[non_zero_index]
     action_sig = np.append(non_zero_sig, full_sig[end_index])
@@ -185,7 +185,7 @@ def datetime_to_index(full_datetime, datestart, dateend=None):
         datestart_int = datestart
         dateend_int = dateend
 
-    #print(f'datetime_to_index  {datestart_int} {dateend_int}')
+    print(f'datetime_to_index  {datestart_int} {dateend_int}')
 
     if datestart_int > full_datetime[-1]:
         return (None, None)

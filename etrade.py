@@ -65,7 +65,7 @@ def list_accounts(token):
 
 def get_quote(symbols, market):
     quote = market.get_quote(symbols, detail_flag='intraday', skip_mini_options_check=True, resp_format='json')
-    logging.info(f'{quote}')
+    #logging.info(f'{quote}')
 
     return quote
     # for q in quote['QuoteResponse']['QuoteData']:
