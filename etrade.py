@@ -3,7 +3,6 @@ import json
 import os
 import pytz
 import time
-import logging
 import pyetrade
 
 consumer_key = "7054284dfb42fd505030408d4ec0d4d3"
@@ -12,7 +11,6 @@ token = {'oauth_token': 'TjBpug93PD1z+MQEgSK7rrc4U/HqVLNyOZ7d27jNx/8=', 'oauth_t
 symbol = 'TSLA'
 account_id_key = 'lZoUChkHRHCYTtouLpG4WQ'
 date_now = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d")
-logging.basicConfig(format='%(message)s', filename=f'etrade_{date_now}.log',  level=logging.INFO)
 
 def format_preview_response (preview):
     nyc_datetime = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y-%m-%d %H:%M:%S")
@@ -123,11 +121,10 @@ def preview (symbol,orderAction, order):
             marketSession='REGULAR',
             orderTerm='GOOD_FOR_DAY')
         r_s = format_preview_response (my_preview)
-        print (f'preview {r_s}')
-        logging.info(f'{r_s}')
+        #print (f'preview {r_s}')
         return my_preview
     except:
-        logging.info(f'exeption {orderAction} ')
+        print(f'exeption {orderAction} ')
     return {}
 
 
