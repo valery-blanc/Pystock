@@ -1,0 +1,37 @@
+{
+  "symbol_list": [
+    "YMM",
+    "RANI",
+    "OTLY",
+    "CAN",
+    "DOCN",
+    "CSPR",
+    "TSLA",
+    "ASAN",
+    "BILI",
+    "LYFT",
+    "DIDI",
+    "BTAI",
+    "DQ",
+    "EYPT",
+    "BEKE",
+    "FCX",
+    "AMD",
+    "TLS",
+    "WDC",
+    "TX",
+    "STX",
+    "BFLY"
+  ],
+  "period_day": 15,
+  "period_night": 120,
+  "open_bell": "093000",
+  "close_bell": "160000",
+  "finish_time": "220000",
+  "today_file_directory": "/home/val/PycharmProject/Numbers/etrade_logs",
+  "VANTAGE_INTRADAY_EXTENDED_URL":"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY_EXTENDED&interval=1min&slice=year1month1&apikey=D6T5YBJID9YYNA1D&symbol=",
+  "VANTAGE_INTRADAY_URL":"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&interval=1min&apikey=D6T5YBJID9YYNA1D&symbol=",
+  "VANTAGE_NUMBERS_BASE_URL":"/home/val/PycharmProject/Numbers/Vantage",
+  "STOOQ_NUMBERS_BASE_URL":"/home/val/PycharmProject/Numbers/Stooq/us"  
+
+}
