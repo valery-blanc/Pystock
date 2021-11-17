@@ -9,31 +9,36 @@ from matplotlib.widgets import Slider, RangeSlider, Button, RadioButtons
 
 import stockapi
 from formulas import datetime_to_index, calculate_buy_sell, calculate_gain, itterative_calculate_gain
+import common
 
 newyork_tz = pytz.timezone('America/New_York')
 
-symbol_list = ['YMM', 'RANI', 'OTLY', 'CAN', 'DOCN', 'CSPR', 'TSLA', 'ASAN', 'BILI', 'LYFT', 'DIDI', 'BTAI', 'DQ', 'EYPT', 'BEKE', 'FCX', 'AMD', 'TLS', 'WDC', 'TX', 'STX', 'BFLY', ]
 
 # symbol_list = ['AAPL', 'NTES', 'STX', 'TX', 'WDC', 'LYFT', 'FNF', 'DAL', 'TPR']
 # symbol_list = ['TSLA', 'APP', 'AMD','ASAN','BILI','BKI','CAN','DQ','DIDI','DOCN','DASH','FTCH','FCX','YMM','JD','BEKE'	]
 # symbol_list = ['TLS','CREX','CSPR','PNBK','EYPT','OTLY','KERN','SSNT','BFLY','BTB','BTAI','MJXL','RANI','VRCA','BGRY']
 
 detailled_history_dict = dict()
-DELTA = 0.029
-order = 3
-nbjours = 20
-max_nb_order_per_day = 20
-critical_freq = 8
-sampling_freq = 1506
-axcolor = 'lightgoldenrodyellow'
-intraday_index = 50
-MAX_GAIN = 50.0
+
+symbol_list                       = common.get_param("symbol_list")
+SIMU_DEFAULT_DELTA                = common.get_param("SIMU_DEFAULT_DELTA")
+SIMU_DEFAULT_FILTER_ORDER         = common.get_param("SIMU_DEFAULT_FILTER_ORDER")
+SIMU_DEFAULT_MAX_ACTION_PER_DAY   = common.get_param("SIMU_DEFAULT_MAX_ACTION_PER_DAY")
+SIMU_DEFAULT_FILTER_CRITICAL_FREQ = common.get_param("SIMU_DEFAULT_FILTER_CRITICAL_FREQ")
+SIMU_DEFAULT_FILTER_SAMPLING_FREQ = common.get_param("SIMU_DEFAULT_FILTER_SAMPLING_FREQ")
+SIMU_AXCOLOR                      = common.get_param("SIMU_AXCOLOR")
+SIMU_DEFAULT_INTRADAY_INDEX       = common.get_param("SIMU_DEFAULT_INTRADAY_INDEX")
+SIMU_DEFAULT_ITERATIVE_MAX_GAIN   = common.get_param("SIMU_DEFAULT_ITERATIVE_MAX_GAIN")
+SIMU_DEFAULT_NB_DAYS_FOR_BEST_ALL = common.get_param("SIMU_DEFAULT_NB_DAYS_FOR_BEST_ALL")
+SIMU_BEST_X_BUTTON_LIST           = common.get_param("SIMU_BEST_X_BUTTON_LIST")
+
+
 
 
 def get_detailled_history(symbol):
     if not symbol in detailled_history_dict.keys():
         detailled_history_dict[symbol] = dict()
-        detailled_history = stockapi.get_from_vantage_and_logs(symbol)
+        detailled_history = stockapi.get_from_vantage(symbol)#get_from_vantage_and_logs(symbol)
         detailled_history_dict[symbol]['full_datetime'] = np.array(detailled_history["time"]).astype(np.longlong)
         detailled_history_dict[symbol]['dates'] = np.array(detailled_history["date"])
         detailled_history_dict[symbol]['full_sig'] = np.array(detailled_history["close"])
@@ -46,8 +51,8 @@ def get_best_pc_average(full_sig, full_datetime, days_list):
     best_moy = -100000.0
     best_fc = 8
     best_fs = 0
-    best_delta = DELTA
-    max_nb_orders = max_nb_order_per_day * len(days_list)
+    best_delta = SIMU_DEFAULT_DELTA
+    max_nb_orders = SIMU_DEFAULT_MAX_ACTION_PER_DAY * len(days_list)
     for delta_i in range(10, 200, 10):  # [0.04,0.05, 0.06, 0.07,]:
         delta = float(delta_i) / 1000.0
         # print (".", end = '')
@@ -72,7 +77,7 @@ def get_best_parameters(full_sig, full_datetime, days_list):
     best_fs = 0
     best_delta = 0
     best_pc = -100
-    max_nb_order = max_nb_order_per_day * len(days_list)
+    max_nb_order = SIMU_DEFAULT_MAX_ACTION_PER_DAY * len(days_list)
 
     days_list_indexes = [datetime_to_index(full_datetime, d) for d in days_list]
     (min_start_index, min_end_index) = days_list_indexes[0]
@@ -146,7 +151,7 @@ def simu_all_dates(full_sig, full_datetime, day_list, order, fc, fs, delta):
 
 
 def replot(ax, symbol, full_sig, full_datetime, datestart, dateend, order, fc, fs, delta, intraday_index_min, intraday_index_max):
-    print(f'_____________________ replot {symbol} {datestart}  {dateend}, {order} {fc} {fs} {delta} {intraday_index}')
+    print(f'_____________________ replot {symbol} {datestart}  {dateend}, {order} {fc} {fs} {delta} ')
 
     ax.clear()
     (day_start_index, day_end_index) = datetime_to_index(full_datetime, datestart, dateend)
@@ -160,7 +165,7 @@ def replot(ax, symbol, full_sig, full_datetime, datestart, dateend, order, fc, f
 
     (full_color_array, full_buy_sell_array, full_hyst) = calculate_buy_sell(full_sig, full_datetime, order, fc, fs, delta, False, start_index, end_index)
     (account, pc, papers, nb_orders) = calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, disp=True)
-    (i_account, i_pc, i_papers, i_nb_orders) = itterative_calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, MAX_GAIN, disp=True)
+    (i_account, i_pc, i_papers, i_nb_orders) = itterative_calculate_gain(full_sig, full_buy_sell_array, start_index, end_index, SIMU_DEFAULT_ITERATIVE_MAX_GAIN, disp=True)
     print(f'i_account {i_account} i_pc {i_pc}')
     full_buy_sell_array = np.insert(full_buy_sell_array, 0, 0)
 
@@ -173,7 +178,7 @@ def replot(ax, symbol, full_sig, full_datetime, datestart, dateend, order, fc, f
 
     moy, pc_array, sum_nb_orders = simu_all_dates(full_sig, full_datetime, unique_dates, order, fc, fs, delta)
     print(f'pc_array {pc_array}')
-    text = f'{datestart} account:{account:.2f} {100.0 * pc:.2f}% {nb_orders} orders action:{full_buy_sell_array[-2]} | CAP${MAX_GAIN} {i_account:.2f} {(100.0 * i_pc):.2f}% {i_nb_orders} orders | {order}/{fc}/{fs} | moy {100 * moy:.2f} '
+    text = f'{datestart} account:{account:.2f} {100.0 * pc:.2f}% {nb_orders} orders action:{full_buy_sell_array[-2]} | CAP${SIMU_DEFAULT_ITERATIVE_MAX_GAIN} {i_account:.2f} {(100.0 * i_pc):.2f}% {i_nb_orders} orders | {order}/{fc}/{fs} | moy {100 * moy:.2f} '
     for name, group in buy_sell_groups:
         # print (name)
         if name == 1:
@@ -292,7 +297,7 @@ def update_best_x_days(val, nb_days):
 
 
 def best_all(val):
-    nb_days = 10
+    nb_days = SIMU_DEFAULT_NB_DAYS_FOR_BEST_ALL
     calc_date = int(date_radio.value_selected)
     # print(f'calc_date {calc_date}  ')
 
@@ -366,33 +371,6 @@ def calc_all(val):
     simu_all_dates(full_sig, full_datetime, unique_dates, order_slider.val, critical_slider.val, sampling_slider.val, delta_slider.val)
 
 
-# def stock_up(val):
-#    print(f'====================================== ++++++')
-#    market = etrade.get_market(etrade.token)
-#    for i in range(0, 30):
-#        last = etrade.get_last_price(market, symbol)
-#        print(f'{last}')
-#        add_value(last)
-#        time.sleep(10)
-#
-#
-# def stock_down(val):
-#    print(f'====================================== -------')
-#    add_value(-0.3)
-
-
-# def add_value(myvalue):
-#    print(f'add_value {myvalue}')
-#    global full_datetime
-#    global full_sig
-#    global dates
-#
-#    full_datetime = np.append(full_datetime, myvalue['date'])
-#    full_sig = np.append(full_sig, myvalue['close'])
-#    dates = np.append(dates, myvalue['date'])
-#    change_date(0)
-#
-
 fig, ax = plt.subplots(figsize=(25, 12), dpi=80)
 plt.subplots_adjust(left=0.12, bottom=0.25, right=0.9)
 
@@ -413,70 +391,72 @@ symbol_radio = RadioButtons(symbol_radio_ax, symbol_list)
 for c in symbol_radio.circles:  # adjust radius here. The default is 0.05
     c.set_radius(0.02)
 
-order_axe = plt.axes([0.91, 0.1, 0.015, 0.8], facecolor=axcolor)
+order_axe = plt.axes([0.91, 0.1, 0.015, 0.8], facecolor=SIMU_AXCOLOR)
 order_slider = Slider(
     ax=order_axe,
     label="order",
     valmin=1,
     valmax=10,
-    valinit=order,
+    valinit=SIMU_DEFAULT_FILTER_ORDER,
     valstep=1,
     orientation="vertical"
 )
-critical_axe = plt.axes([0.93, 0.1, 0.015, 0.8], facecolor=axcolor)
+critical_axe = plt.axes([0.93, 0.1, 0.015, 0.8], facecolor=SIMU_AXCOLOR)
 critical_slider = Slider(
     ax=critical_axe,
     label="fc",
     valmin=0,
     valmax=30,
     valstep=1,
-    valinit=critical_freq,
+    valinit=SIMU_DEFAULT_FILTER_CRITICAL_FREQ,
 
     orientation="vertical"
 )
-sampling_axe = plt.axes([0.95, 0.1, 0.015, 0.8], facecolor=axcolor)
+sampling_axe = plt.axes([0.95, 0.1, 0.015, 0.8], facecolor=SIMU_AXCOLOR)
 sampling_slider = Slider(
     ax=sampling_axe,
     label="fs",
     valmin=0,
     valmax=5000,
     valstep=1,
-    valinit=sampling_freq,
+    valinit=SIMU_DEFAULT_FILTER_SAMPLING_FREQ,
     orientation="vertical"
 )
 
-delta_axe = plt.axes([0.97, 0.1, 0.015, 0.8], facecolor=axcolor)
+delta_axe = plt.axes([0.97, 0.1, 0.015, 0.8], facecolor=SIMU_AXCOLOR)
 delta_slider = Slider(
     ax=delta_axe,
     label="delta",
     valmin=0,
     valmax=1,
     valstep=0.001,
-    valinit=DELTA,
+    valinit=SIMU_DEFAULT_DELTA,
     orientation="vertical"
 )
 
-intraday_index_axe = plt.axes([0.14, 0.07, 0.74, 0.03], facecolor=axcolor)
+intraday_index_axe = plt.axes([0.14, 0.07, 0.74, 0.03], facecolor=SIMU_AXCOLOR)
 intraday_index_slider = RangeSlider(
     ax=intraday_index_axe,
     label="minutes",
     valmin=0,
     valmax=1570,
     valstep=1,
-    valinit=(0, intraday_index)
+    valinit=(0, SIMU_DEFAULT_INTRADAY_INDEX)
 )
 
-update_axe = plt.axes([0.01, 0.14, 0.04, 0.05], facecolor=axcolor)
+update_axe = plt.axes([0.01, 0.14, 0.04, 0.05], facecolor=SIMU_AXCOLOR)
 update_now = Button(update_axe, 'update')
 
-best_axe = plt.axes([0.01, 0.08, 0.04, 0.05], facecolor=axcolor)
+best_axe = plt.axes([0.01, 0.08, 0.04, 0.05], facecolor=SIMU_AXCOLOR)
 best_today = Button(best_axe, 'Best today')
 
 xx = 0.01
 i = 0
 best_x_buttons = []
-for nb_days in [20, 10, 5, 3, 1]:
-    best_axe = plt.axes([xx, 0.02, 0.03, 0.05], facecolor=axcolor)
+for nb_days in SIMU_BEST_X_BUTTON_LIST:
+
+    exec(f"def update_best_{nb_days}_days(val): update_best_x_days(val, {nb_days})")
+    best_axe = plt.axes([xx, 0.02, 0.03, 0.05], facecolor=SIMU_AXCOLOR)
     best_x_button = Button(best_axe, f'Best {nb_days} d')
     function_name = f'update_best_{nb_days}_days'
     funct = getattr(sys.modules[__name__], function_name)
@@ -487,17 +467,14 @@ for nb_days in [20, 10, 5, 3, 1]:
 # up_axe = plt.axes([0.05, 0.14, 0.04, 0.05], facecolor=axcolor)
 # action_up = Button(up_axe, '+')
 #
-down_axe = plt.axes([0.05, 0.08, 0.04, 0.05], facecolor=axcolor)
+down_axe = plt.axes([0.05, 0.08, 0.04, 0.05], facecolor=SIMU_AXCOLOR)
 action_down = Button(down_axe, 'Best ALL')
 
 # intraday_index_slider.on_changed(update)
 date_radio.on_clicked(change_date)
 symbol_radio.on_clicked(update)
-# best_x_days.on_clicked(update_best_x_days)
 best_today.on_clicked(update_best_today)
 update_now.on_clicked(update)
-# action_up.on_clicked(stock_up)
 action_down.on_clicked(best_all)
 change_date(0)
-# update_best_x_days(0)
 plt.show()

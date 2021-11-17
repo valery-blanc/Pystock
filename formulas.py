@@ -1,8 +1,9 @@
 import numpy as np
 from scipy import signal
+import common
 
-open_bell = "093000"
-close_bell = "160000"
+open_bell = common.get_param("open_bell")
+close_bell = common.get_param("close_bell")
 green_sign_array = np.empty(3000)
 green_sign_array[::2] = 1
 green_sign_array[1::2] = -1
@@ -185,7 +186,7 @@ def datetime_to_index(full_datetime, datestart, dateend=None):
         datestart_int = datestart
         dateend_int = dateend
 
-    print(f'datetime_to_index  {datestart_int} {dateend_int}')
+    #print(f'datetime_to_index  {datestart_int} {dateend_int}')
 
     if datestart_int > full_datetime[-1]:
         return (None, None)

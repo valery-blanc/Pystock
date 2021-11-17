@@ -17,11 +17,13 @@ def read_from_file():
     print(PARAM_LIST)
     f.close()
 
-def get_param(param_name):
+def get_param(param_name, default_value = None):
     global PARAM_LIST
     global REFRESH
     if not PARAM_LIST or REFRESH:
         read_from_file()
         REFRESH = False
-    return PARAM_LIST[param_name]
+    if param_name in PARAM_LIST.keys():
+        return PARAM_LIST[param_name]
+    return default_value
 

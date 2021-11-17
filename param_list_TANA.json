@@ -32,6 +32,15 @@
   "VANTAGE_INTRADAY_EXTENDED_URL":"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY_EXTENDED&interval=1min&slice=year1month1&apikey=D6T5YBJID9YYNA1D&symbol=",
   "VANTAGE_INTRADAY_URL":"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&interval=1min&apikey=D6T5YBJID9YYNA1D&symbol=",
   "VANTAGE_NUMBERS_BASE_URL":"/home/val/PycharmProject/Numbers/Vantage",
-  "STOOQ_NUMBERS_BASE_URL":"/home/val/PycharmProject/Numbers/Stooq/us"  
-
+  "STOOQ_NUMBERS_BASE_URL":"/home/val/PycharmProject/Numbers/Stooq/us",
+  "SIMU_DEFAULT_DELTA":0.029,
+  "SIMU_DEFAULT_FILTER_ORDER":3,
+  "SIMU_DEFAULT_MAX_ACTION_PER_DAY":20,
+  "SIMU_DEFAULT_FILTER_CRITICAL_FREQ":8,
+  "SIMU_DEFAULT_FILTER_SAMPLING_FREQ":1506,
+  "SIMU_AXCOLOR":"lightgoldenrodyellow",
+  "SIMU_DEFAULT_INTRADAY_INDEX":50,
+  "SIMU_DEFAULT_ITERATIVE_MAX_GAIN":50.0,
+  "SIMU_DEFAULT_NB_DAYS_FOR_BEST_ALL": 10,
+  "SIMU_BEST_X_BUTTON_LIST":[20, 10,8, 5, 3, 1]
 }
