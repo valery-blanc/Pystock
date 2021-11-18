@@ -1,6 +1,8 @@
 import datetime
 import time
+
 import numpy as np
+
 import etrade
 import formulas
 import stockapi
@@ -45,6 +47,7 @@ fc = 8
 fs = 1500
 delta = 0.005
 simu = False
+# noinspection PyUnresolvedReferences
 etrade_token = etrade.token
 etrade_market = None
 etrade_order = None
@@ -55,9 +58,12 @@ close_history = np.array(detailled_history["close"])
 if simu:
     close = close_history[-1000]
 else:
+    # noinspection PyRedeclaration
     etrade_token = etrade.get_token()
-    etrade_market = etrade.get_market(etrade_token)
-    etrade_order = etrade.get_order(etrade_token)
+    # noinspection PyRedeclaration
+    etrade_market = etrade.get_market()
+    # noinspection PyRedeclaration
+    etrade_order = etrade.get_order()
     close = etrade.get_last_price(etrade_market, symbol)['close']
 print(close)
 
@@ -80,7 +86,9 @@ for shift_index in range(0, 1500):
     with open("TSLA_20211111.txt", "a+") as file_object:
         file_object.write(myline)
 
+    # noinspection PyRedeclaration
     preview1 = None
+    # noinspection PyRedeclaration
     preview2 = None
 
     if buy_sell > 0:  # BUY

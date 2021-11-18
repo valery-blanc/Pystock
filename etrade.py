@@ -1,24 +1,24 @@
 import datetime
-import json
 import os
-import pytz
 import time
-import pyetrade
-import common
 
+import pyetrade
+import pytz
+
+import common
 
 consumer_key = common.get_param('consumer_key', "7054284dfb42fd505030408d4ec0d4d3")
 consumer_secret = common.get_param('consumer_secret', "1e9dee8bc1bd2b62a3a555560f635bbf4689512f03441e1bdea0a0487f79a108")
 account_id_key = common.get_param('account_id_key', 'lZoUChkHRHCYTtouLpG4WQ')
 
 
-def format_preview_response (preview):
+def format_preview_response(response_preview):
     nyc_datetime = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y-%m-%d %H:%M:%S")
 
-    r_action = preview['PreviewOrderResponse']['Order']['Instrument']['orderAction']
-    r_quantity = preview['PreviewOrderResponse']['Order']['Instrument']['quantity']
-    r_symbol = preview['PreviewOrderResponse']['Order']['Instrument']['Product']['symbol']
-    r_price = preview['PreviewOrderResponse']['Order']['estimatedTotalAmount']
+    r_action = response_preview['PreviewOrderResponse']['Order']['Instrument']['orderAction']
+    r_quantity = response_preview['PreviewOrderResponse']['Order']['Instrument']['quantity']
+    r_symbol = response_preview['PreviewOrderResponse']['Order']['Instrument']['Product']['symbol']
+    r_price = response_preview['PreviewOrderResponse']['Order']['estimatedTotalAmount']
     r_s = f'{nyc_datetime} {r_action} {r_quantity} {r_symbol} {r_price}'
     return r_s
 
@@ -32,8 +32,6 @@ def creation_date(path_to_file):
 
 def get_token():
     token = None
-
-
     token_date = common.get_param("token_date")
     now = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d")
     if token_date == now:
@@ -45,9 +43,9 @@ def get_token():
 
         verifier_code = input("Enter verification code: ")
         token = oauth.get_access_token(verifier_code)
-        common.update_params({'token':token, 'token_date':now})
+        common.update_params({'token': token, 'token_date': now})
 
-    #print(f'token = {token}')
+    # print(f'token = {token}')
     return token
 
 
@@ -58,7 +56,7 @@ def list_accounts(token):
 
 def get_quote(symbols, market):
     quote = market.get_quote(symbols, detail_flag='intraday', skip_mini_options_check=True, resp_format='json')
-    #logging.info(f'{quote}')
+    # logging.info(f'{quote}')
 
     return quote
     # for q in quote['QuoteResponse']['QuoteData']:
@@ -83,6 +81,7 @@ def get_market():
     print(f'get_market ')
     return market
 
+
 def get_order():
     token = get_token()
     order = pyetrade.ETradeOrder(consumer_key, consumer_secret, token['oauth_token'], token['oauth_token_secret'], dev=False)
@@ -101,7 +100,8 @@ def stream_quote(symbol, token):
     end = time.time()
     print(end - start)
 
-def preview (symbol,orderAction, order):
+
+def preview(symbol, orderAction, order):
     client_order_id = str(time.time())
     print(f'{orderAction} {symbol} client_order_id {client_order_id} account_id_key {account_id_key}')
     try:
@@ -115,15 +115,15 @@ def preview (symbol,orderAction, order):
             quantity=1,
             marketSession='REGULAR',
             orderTerm='GOOD_FOR_DAY')
-        r_s = format_preview_response (my_preview)
-        #print (f'preview {r_s}')
+        r_s = format_preview_response(my_preview)
+        # print (f'preview {r_s}')
         return my_preview
     except:
-        print(f'exeption {orderAction} ')
+        print(f'exception {orderAction} ')
     return {}
 
 
-def preview_and_place(symbol, token, account_id_key):
+def preview_and_place(symbol, token):
     order = pyetrade.ETradeOrder(consumer_key, consumer_secret, token['oauth_token'], token['oauth_token_secret'], dev=False)
     client_order_id = str(time.time())
     print(f'client_order_id {client_order_id}')
@@ -157,32 +157,7 @@ def preview_and_place(symbol, token, account_id_key):
     return myorder
 
 
-def list_order(token, account_id_key):
+def list_order(token):
     orders = pyetrade.ETradeOrder(consumer_key, consumer_secret, token['oauth_token'], token['oauth_token_secret'], dev=False)
-
     print(f"list : {orders.list_orders(account_id_key, resp_format='json')}")
 
-
-
-
-
-#token = get_token()
-###quit()
-##
-
-#
-#
-#accounts = list_accounts(token)
-#print (f'accounts:{accounts}')
-#account_id_key = accounts['AccountListResponse']['Accounts']['Account']['accountIdKey']
-#print (f'account_id_key:{account_id_key}')
-#
-##list_order(token, account_id_key)
-# nyc_datetime = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y-%m-%d %H:%M:%S.%f")
-# quote = get_quote([symbol], token)
-# q = quote['QuoteResponse']['QuoteData'][0]['Intraday']
-# print(f" {nyc_datetime} lastTrade : {q['lastTrade']}")
-##myorder = preview_and_place (symbol, token, account_id_key)
-##nyc_datetime = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y-%m-%d %H:%M:%S.%f")
-##print(f"{nyc_datetime}  myorder : {myorder}")
-# list_order (token, account_id_key)

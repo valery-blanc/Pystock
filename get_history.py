@@ -1,12 +1,12 @@
-import etrade
-import time
 import os
+import time
 from datetime import datetime
+
 import pytz
-import formulas
+
 import common
-
-
+import etrade
+import formulas
 
 symbol_list = common.get_param("symbol_list")
 now = datetime.now(pytz.timezone('US/Eastern'))
@@ -26,7 +26,7 @@ print(f'now {formulas.beautify_date(mytime)} finish at {formulas.beautify_date(f
 
 while mytime < finish_time:
     mytime = int(datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d%H%M%S"))
-    if mytime >= open_time and mytime <= close_time:
+    if open_time <= mytime <= close_time:
         period = common.get_param("period_day")
     else:
         period = common.get_param("period_night")
