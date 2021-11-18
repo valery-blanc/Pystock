@@ -4,13 +4,13 @@ import os
 import pytz
 import time
 import pyetrade
+import common
 
-consumer_key = "7054284dfb42fd505030408d4ec0d4d3"
-consumer_secret = "1e9dee8bc1bd2b62a3a555560f635bbf4689512f03441e1bdea0a0487f79a108"
-token = {'oauth_token': 'TjBpug93PD1z+MQEgSK7rrc4U/HqVLNyOZ7d27jNx/8=', 'oauth_token_secret': 'mPSdXOS6bs0qQ2zobM9OEtbOornAeoO3lutjdkriI4U='}
-symbol = 'TSLA'
-account_id_key = 'lZoUChkHRHCYTtouLpG4WQ'
-date_now = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d")
+
+consumer_key = common.get_param('consumer_key', "7054284dfb42fd505030408d4ec0d4d3")
+consumer_secret = common.get_param('consumer_secret', "1e9dee8bc1bd2b62a3a555560f635bbf4689512f03441e1bdea0a0487f79a108")
+account_id_key = common.get_param('account_id_key', 'lZoUChkHRHCYTtouLpG4WQ')
+
 
 def format_preview_response (preview):
     nyc_datetime = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y-%m-%d %H:%M:%S")
@@ -33,14 +33,11 @@ def creation_date(path_to_file):
 def get_token():
     token = None
 
-    try:
-        token_date = creation_date("token.txt")
-        if token_date == datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d"):
-            with open('token.txt', 'r') as file:
-                token = json.load(file)
-                print('token form file')
-    except:
-        print('token not read')
+
+    token_date = common.get_param("token_date")
+    now = datetime.datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d")
+    if token_date == now:
+        token = common.get_param("token")
 
     if not token:
         oauth = pyetrade.ETradeOAuth(consumer_key, consumer_secret)
@@ -48,11 +45,9 @@ def get_token():
 
         verifier_code = input("Enter verification code: ")
         token = oauth.get_access_token(verifier_code)
+        common.update_params({'token':token, 'token_date':now})
 
-        with open('token.txt', 'w') as file:
-            file.write(json.dumps(token))  # use `json.loads` to do the reverse
-
-    print(f'token = {token}')
+    #print(f'token = {token}')
     return token
 
 
@@ -171,7 +166,7 @@ def list_order(token, account_id_key):
 
 
 
-token = get_token()
+#token = get_token()
 ###quit()
 ##
 

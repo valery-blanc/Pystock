@@ -11,7 +11,7 @@ import common
 symbol_list = common.get_param("symbol_list")
 now = datetime.now(pytz.timezone('US/Eastern'))
 today = now.strftime("%Y%m%d")
-today_file_directory = common.get_param("today_file_directory")
+today_file_directory = common.get_param("ETRADE_NUMBERS_BASE_URL")
 today_file_name = os.path.join(today_file_directory, f'etrade_{today}.log')
 print(today_file_name)
 open_time = int(f'{today}{common.get_param("open_bell")}')

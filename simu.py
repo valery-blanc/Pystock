@@ -34,7 +34,6 @@ SIMU_BEST_X_BUTTON_LIST           = common.get_param("SIMU_BEST_X_BUTTON_LIST")
 
 
 
-
 def get_detailled_history(symbol):
     if not symbol in detailled_history_dict.keys():
         detailled_history_dict[symbol] = dict()
