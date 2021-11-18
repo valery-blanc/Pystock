@@ -37,10 +37,13 @@ def write_to_file(param_list, filename):
 
 def synchronize_TANA():
     TANA_PARAM_FILE = get_param('TANA_PARAM_FILE', '/home/val/PycharmProject/Pystock/param_list.json')
+    sftp_tana_host = get_param("sftp_tana_host")
+    sftp_tana_passwd= get_param("sftp_tana_passwd")
+
     if TANA_PARAM_FILE == param_file:
         return ()
     print('synchronize_TANA transfer')
-    c = Connection(host="val@TANA.local", connect_kwargs={"password": "Manon888"})
+    c = Connection(host=sftp_tana_host, connect_kwargs={"password": sftp_tana_passwd})
     Transfer(c).put(param_file, TANA_PARAM_FILE)
 
 
