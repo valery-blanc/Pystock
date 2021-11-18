@@ -36,7 +36,7 @@ def write_to_file(param_list, filename):
 
 
 def synchronize_TANA():
-    TANA_PARAM_FILE = common.get_param('TANA_PARAM_FILE', '/home/val/PycharmProject/Pystock/param_list.json')
+    TANA_PARAM_FILE = get_param('TANA_PARAM_FILE', '/home/val/PycharmProject/Pystock/param_list.json')
     if TANA_PARAM_FILE == param_file:
         return ()
     print('synchronize_TANA transfer')
