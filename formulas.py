@@ -37,12 +37,8 @@ def calculate_buy_sell(full_sig, full_datetime, order, fc, fs, delta, disp=False
         full_hyst = sig2 - filtered
         up_indexes = np.where(np.diff(full_hyst) > delta)[0]
         down_indexes = np.where(np.diff(full_hyst) < -1.0 * delta)[0]
-
-
-
-
-    except:
-        print(f'order {order}, fc {fc}, fs {fs}')
+    except Exception as e:
+        print(f'order {order}, fc {fc}, fs {fs} {e}')
         return color_array, buy_sell_array, np.zeros(len(full_sig))
 
     color_array[up_indexes] = 1

@@ -11,9 +11,7 @@ global REFRESH
 param_file = os.path.join(os.getcwd(), '..', 'param_list.json')
 param_file_localhost = os.path.join(os.getcwd(), '..', f'param_list_{platform.node()}.json')
 
-# noinspection PyRedeclaration
 PARAM_LIST = dict()
-# noinspection PyRedeclaration
 REFRESH = True
 
 
@@ -37,7 +35,7 @@ def write_to_file(param_list, filename):
 
 
 def synchronize_TANA():
-    TANA_PARAM_FILE = get_param('TANA_PARAM_FILE', '/home/val/PycharmProject/Pystock/param_list.json')
+    TANA_PARAM_FILE = get_param('TANA_PARAM_FILE')
     sftp_tana_host = get_param("sftp_tana_host")
     sftp_tana_passwd = get_param("sftp_tana_passwd")
 
@@ -49,6 +47,8 @@ def synchronize_TANA():
 
 
 def update_params(update_dict, global_file=True):
+    global PARAM_LIST
+
     PARAM_LIST.update(update_dict)
 
     if global_file:
@@ -79,3 +79,4 @@ def get_param(key, default_value=None, create_in_global_file=True):
     else:  # create the parameter with default value
         update_params({key: default_value}, create_in_global_file)
     return default_value
+

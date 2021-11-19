@@ -36,7 +36,7 @@ SIMU_BEST_X_BUTTON_LIST = common.get_param("SIMU_BEST_X_BUTTON_LIST")
 def get_detailled_history(symbol):
     if not symbol in detailled_history_dict.keys():
         detailled_history_dict[symbol] = dict()
-        detailled_history = stockapi.get_from_vantage(symbol)  # get_from_vantage_and_logs(symbol)
+        detailled_history = stockapi.get_from_vantage_and_logs(symbol)  # get_from_vantage_and_logs(symbol)
         detailled_history_dict[symbol]['full_datetime'] = np.array(detailled_history["time"]).astype(np.longlong)
         detailled_history_dict[symbol]['dates'] = np.array(detailled_history["date"])
         detailled_history_dict[symbol]['full_sig'] = np.array(detailled_history["close"])
@@ -54,7 +54,7 @@ def get_best_pc_average(full_sig, full_datetime, days_list):
     for delta_i in range(10, 200, 10):  # [0.04,0.05, 0.06, 0.07,]:
         delta = float(delta_i) / 1000.0
         # print (".", end = '')
-        for fs in range(50, 4000, 100):  # (1480, 1520, 1):
+        for fs in range(20, 1700, 5):  # (1480, 1520, 1):
             moy, pc_array, sum_nb_orders = simu_all_dates(full_sig, full_datetime, days_list, best_order, best_fc, fs, delta)
             if moy > best_moy and sum_nb_orders < max_nb_orders:
                 best_moy = moy
@@ -85,7 +85,7 @@ def get_best_parameters(full_sig, full_datetime, days_list):
         print(order)
         for fc in range(8, 25, 1):  # [8]:  # range(8, 25, 1):
             for delta in [0.005, 0.01, 0.05]:
-                for fs in range(100, 3000, 50):  # np.logspace(1.8,3.7,400, True, 8): #range(2 * fc + 1, 400, 1): #
+                for fs in range(300, 1800,10):  # np.logspace(1.8,3.7,400, True, 8): #range(2 * fc + 1, 400, 1): #
                     sum_account = 0
                     sum_pc = 0
                     sum_nb_orders = 0
@@ -124,7 +124,6 @@ def simu_all_dates(full_sig, full_datetime, day_list, order, fc, fs, delta):
         sum_nb_orders = sum_nb_orders + nb_orders
         pc_array.append(pc)
         # i_pc_array.append(i_pc)
-
         # print (f'{mydate} {account:.2f} {100 * pc:.2f} ')
 
     moy = sum(pc_array) / len(pc_array)
@@ -332,7 +331,9 @@ def init_design():
     plt.subplots_adjust(left=0.12, bottom=0.25, right=0.9)
 
     first_symbol = symbol_list[0]
+    print (f'first_symbol {first_symbol}')
     first_dates = get_detailled_history(first_symbol)["dates"]
+    print (f'first_dates {first_dates}')
 
     widget_dict["unique_dates"] = np.unique(first_dates)
     print(f' widget_dict["unique_dates"] {widget_dict["unique_dates"]} ')
