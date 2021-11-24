@@ -83,7 +83,11 @@ def read_one_file_from_logs(fp):
 
 
 def from_logs(filenames='etrade_*.log'):
-    synchronize_etrade_numbers_from_server(filenames)
+    try:
+        synchronize_etrade_numbers_from_server(filenames)
+    except Exception as e:
+        print (f'from_logs {e}')
+
     global QUOTES_LOG_DICT
 
     if QUOTES_LOG_DICT:
