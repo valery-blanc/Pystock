@@ -9,6 +9,7 @@ from fabric.transfer import Transfer
 global PARAM_LIST
 global REFRESH
 param_file = os.path.join(os.getcwd(), '..', 'param_list.json')
+print (f'param_file {param_file}')
 param_file_localhost = os.path.join(os.getcwd(), '..', f'param_list_{platform.node()}.json')
 
 PARAM_LIST = dict()

@@ -36,7 +36,7 @@ SIMU_BEST_X_BUTTON_LIST = common.get_param("SIMU_BEST_X_BUTTON_LIST")
 def get_detailled_history(symbol):
     if not symbol in detailled_history_dict.keys():
         detailled_history_dict[symbol] = dict()
-        detailled_history = stockapi.get_from_vantage_and_logs(symbol)  # get_from_vantage_and_logs(symbol)
+        detailled_history = stockapi.get_from_vantage_and_yahoo(symbol)  # get_from_vantage_and_logs(symbol)
         detailled_history_dict[symbol]['full_datetime'] = np.array(detailled_history["time"]).astype(np.longlong)
         detailled_history_dict[symbol]['dates'] = np.array(detailled_history["date"])
         detailled_history_dict[symbol]['full_sig'] = np.array(detailled_history["close"])
@@ -51,10 +51,10 @@ def get_best_pc_average(full_sig, full_datetime, days_list):
     best_fs = 0
     best_delta = SIMU_DEFAULT_DELTA
     max_nb_orders = SIMU_DEFAULT_MAX_ACTION_PER_DAY * len(days_list)
-    for delta_i in range(10, 200, 10):  # [0.04,0.05, 0.06, 0.07,]:
-        delta = float(delta_i) / 1000.0
+    for delta_i in range(1, 200, 20):  # [0.04,0.05, 0.06, 0.07,]:
+        delta = float(delta_i) / 10000.0
         # print (".", end = '')
-        for fs in range(20, 1700, 5):  # (1480, 1520, 1):
+        for fs in range(20, 3000, 5):  # (1480, 1520, 1):
             moy, pc_array, sum_nb_orders = simu_all_dates(full_sig, full_datetime, days_list, best_order, best_fc, fs, delta)
             if moy > best_moy and sum_nb_orders < max_nb_orders:
                 best_moy = moy
@@ -386,7 +386,7 @@ def init_design():
         label="delta",
         valmin=0,
         valmax=1,
-        valstep=0.001,
+        valstep=0.00001,
         valinit=SIMU_DEFAULT_DELTA,
         orientation="vertical"
     )
@@ -405,19 +405,19 @@ def init_design():
     widget_dict["update_now"] = Button(update_axe, 'update')
 
     best_axe = plt.axes([0.01, 0.08, 0.04, 0.05], facecolor=SIMU_AXCOLOR)
-    widget_dict["best_today"] = Button(best_axe, 'Best today')
+    widget_dict["best_today"] = Button(best_axe, 'Best\ntoday')
 
     xx = 0.01
     for nb_days in SIMU_BEST_X_BUTTON_LIST:
         best_axe = plt.axes([xx, 0.02, 0.03, 0.05], facecolor=SIMU_AXCOLOR)
-        widget_dict[f"best_{nb_days}_button"] = Button(best_axe, f'Best {nb_days} d')
+        widget_dict[f"best_{nb_days}_button"] = Button(best_axe, f'Best\n{nb_days}')
         function_name = f'update_best_{nb_days}_days'
         funct = getattr(sys.modules[__name__], function_name)
         widget_dict[f"best_{nb_days}_button"].on_clicked(funct)
         xx = xx + .03
 
     down_axe = plt.axes([0.05, 0.08, 0.04, 0.05], facecolor=SIMU_AXCOLOR)
-    widget_dict["action_down"] = Button(down_axe, 'Best ALL')
+    widget_dict["action_down"] = Button(down_axe, 'Best\nALL')
 
     # widget_dict["intraday_index_slider"].on_changed(update)
     widget_dict["date_radio"].on_clicked(change_date)
