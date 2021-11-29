@@ -37,13 +37,16 @@ def write_to_file(param_list, filename):
 def synchronize_TANA():
     TANA_PARAM_FILE = get_param('TANA_PARAM_FILE')
     sftp_tana_host = get_param("sftp_tana_host")
+    if platform.node() == "TANA":
+        return()
     sftp_tana_passwd = get_param("sftp_tana_passwd")
 
-    if TANA_PARAM_FILE == param_file:
-        return ()
     print('synchronize_TANA transfer')
-    c = Connection(host=sftp_tana_host, connect_kwargs={"password": sftp_tana_passwd})
-    Transfer(c).put(param_file, TANA_PARAM_FILE)
+    try:
+        c = Connection(host=sftp_tana_host, connect_kwargs={"password": sftp_tana_passwd})
+        Transfer(c).put(param_file, TANA_PARAM_FILE)
+    except Exception as e:
+        print(f'Could not synchronise with TANA param file: {e}')
 
 
 def update_params(update_dict, global_file=True):
