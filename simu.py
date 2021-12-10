@@ -36,10 +36,15 @@ SIMU_BEST_X_BUTTON_LIST = common.get_param("SIMU_BEST_X_BUTTON_LIST")
 def get_detailled_history(symbol):
     if not symbol in detailled_history_dict.keys():
         detailled_history_dict[symbol] = dict()
-        detailled_history = stockapi.get_from_vantage_and_yahoo(symbol)  # get_from_vantage_and_logs(symbol)
+        #detailled_history = stockapi.get_from_vantage_and_yahoo(symbol)
+        #detailled_history = stockapi.get_from_vantage_and_logs(symbol)
+        detailled_history = stockapi.get_from_logs(symbol)
         detailled_history_dict[symbol]['full_datetime'] = np.array(detailled_history["time"]).astype(np.longlong)
         detailled_history_dict[symbol]['dates'] = np.array(detailled_history["date"])
         detailled_history_dict[symbol]['full_sig'] = np.array(detailled_history["close"])
+        first_value = detailled_history_dict[symbol]['full_sig'][0]
+        print (f'first_value {first_value}')
+        detailled_history_dict[symbol]['full_sig'] = detailled_history_dict[symbol]['full_sig'] / first_value
     return detailled_history_dict[symbol]
 
 
@@ -51,10 +56,10 @@ def get_best_pc_average(full_sig, full_datetime, days_list):
     best_fs = 0
     best_delta = SIMU_DEFAULT_DELTA
     max_nb_orders = SIMU_DEFAULT_MAX_ACTION_PER_DAY * len(days_list)
-    for delta_i in range(1, 200, 20):  # [0.04,0.05, 0.06, 0.07,]:
-        delta = float(delta_i) / 10000.0
+    for delta_i in range(10, 40, 1):  # [0.04,0.05, 0.06, 0.07,]:
+        delta = float(delta_i) / 100000.0
         # print (".", end = '')
-        for fs in range(20, 3000, 5):  # (1480, 1520, 1):
+        for fs in range(100, 3000, 10):  # (1480, 1520, 1):
             moy, pc_array, sum_nb_orders = simu_all_dates(full_sig, full_datetime, days_list, best_order, best_fc, fs, delta)
             if moy > best_moy and sum_nb_orders < max_nb_orders:
                 best_moy = moy
@@ -291,8 +296,9 @@ def change_date(val):
     full_datetime = get_detailled_history(symbol)['full_datetime']
 
     datestart_index, end_index = datetime_to_index(full_datetime, widget_dict["date_radio"].value_selected)
-    widget_dict["intraday_index_slider"].ax.set_xlim(0, end_index - datestart_index + 5)
-    widget_dict["intraday_index_slider"].set_val([0, end_index - datestart_index])
+    if end_index:
+        widget_dict["intraday_index_slider"].ax.set_xlim(0, end_index - datestart_index + 5)
+        widget_dict["intraday_index_slider"].set_val([0, end_index - datestart_index])
     update(None)
 
 
@@ -385,8 +391,8 @@ def init_design():
         ax=delta_axe,
         label="delta",
         valmin=0,
-        valmax=1,
-        valstep=0.00001,
+        valmax=0.001,
+        valstep=0.000001,
         valinit=SIMU_DEFAULT_DELTA,
         orientation="vertical"
     )

@@ -88,6 +88,12 @@ def from_logs(filenames='etrade_*.log'):
     except Exception as e:
         print (f'from_logs {e}')
 
+    ny_date = datetime.now(pytz.timezone('US/Eastern')).strftime("%Y%m%d")
+    ny_hour = datetime.now(pytz.timezone('US/Eastern')).strftime("%H%M%S")
+    ny_w = datetime.now(pytz.timezone('US/Eastern')).strftime("%w")
+
+    print (f'ny_date {ny_date} ny_hour {ny_hour} ny_w {ny_w}')
+
     global QUOTES_LOG_DICT
 
     if QUOTES_LOG_DICT:
@@ -95,9 +101,13 @@ def from_logs(filenames='etrade_*.log'):
     filenames = os.path.join(common.get_param('ETRADE_NUMBERS_BASE_DIRECTORY'), filenames)
     logFilenamesList = glob.glob(filenames)
     for filename in logFilenamesList:
-        print(f'from_logs {filename}')
-        with open(filename) as fp:
-            read_one_file_from_logs(fp)
+        log_date = filename[-12:-4]
+        print(f'from_logs {filename} {log_date}')
+        if log_date == ny_date and (ny_w in [0,6] or ny_hour <= common.get_param('open_bell')):
+            print ('dont get today')
+        else:
+            with open(filename) as fp:
+                read_one_file_from_logs(fp)
 
     return QUOTES_LOG_DICT
 

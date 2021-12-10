@@ -25,7 +25,7 @@ def calculate_buy_sell(full_sig, full_datetime, order, fc, fs, delta, disp=False
 
     sig2 = np.array(full_sig)
     sig2[0:start_index] = full_sig[start_index]
-    if end_index > 0:
+    if end_index and end_index > 0:
         sig2[end_index:] = full_sig[end_index]
 
     if disp:
